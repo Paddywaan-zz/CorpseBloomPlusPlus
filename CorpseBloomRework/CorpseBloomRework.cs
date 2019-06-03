@@ -95,7 +95,7 @@ namespace Paddywan
             IL.RoR2.HealthComponent.FixedUpdate += (il) =>
             {
                 var c = new ILCursor(il);
-                Logger.LogInfo(il.ToString());
+                //Logger.LogInfo(il.ToString());
                 //GoTo: this.regenAccumulator -= num;
                 c.GotoNext(
                     x => x.MatchLdfld<HealthComponent>("regenAccumulator"),
@@ -105,39 +105,22 @@ namespace Paddywan
                 );
                 c.Index += 4; //NextLine
 
-                //c.RemoveRange(8);
+                //c.RemoveRange(8); //We don't remove the range(hc.Heal(regenAccumulator, default(ProcChainMask), false);) because this is only applied to default health regen effects, not repeatheal.
 
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("regenAccumulator"));
+                c.Emit(OpCodes.Ldarg_0);//push (this) to pass to the Delegate
+                c.Emit(OpCodes.Ldarg_0);//Push (this) to pass to getFieldCached
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("regenAccumulator")); //push regenAccumulator to the stack
 
+                //pass this & regenAccumulor to delegate
                 c.EmitDelegate<Action<HealthComponent, float>>((hc, regenAccumulator) =>
                 {
-
-                    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0)
+                    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
-                        hc.Heal(regenAccumulator, default(ProcChainMask), true);
+                        hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve
                     }
-                    //hc.Heal(regenAccumulator, default(ProcChainMask), false);
-                    //if (hc.body.inventory)
-                    //{
-                    //    Logger.LogInfo(hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal));
-                    //    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0)
-                    //    {
-                    //        hc.Heal(regenAccumulator, default(ProcChainMask), true);
-                    //    }
-                    //    else
-                    //    {
-                    //        //hc.Heal(regenAccumulator, default(ProcChainMask), false);
-                    //    }
-                    //}
                 });
-                Debug.Log(il.ToString());
+                //Debug.Log(il.ToString());
             };
-        }
-        public void Update()
-        {
-            TestHelper.itemSpawnHelper();
         }
     }
 }
