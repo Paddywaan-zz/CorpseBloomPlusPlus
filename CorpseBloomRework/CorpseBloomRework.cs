@@ -113,12 +113,16 @@ namespace Paddywan
 
                 c.EmitDelegate<Action<HealthComponent, float>>((hc, regenAccumulator) =>
                 {
-                    hc.Heal(regenAccumulator, default(ProcChainMask), true);
+
+                    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0)
+                    {
+                        hc.Heal(regenAccumulator, default(ProcChainMask), true);
+                    }
                     //hc.Heal(regenAccumulator, default(ProcChainMask), false);
                     //if (hc.body.inventory)
                     //{
                     //    Logger.LogInfo(hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal));
-                    //    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) == 0)
+                    //    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0)
                     //    {
                     //        hc.Heal(regenAccumulator, default(ProcChainMask), true);
                     //    }
