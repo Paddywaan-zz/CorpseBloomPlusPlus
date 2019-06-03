@@ -90,5 +90,11 @@
   <ItemGroup>
     <Folder Include="Lib\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\RoR2TestHelper\RoR2TestHelper\RoR2TestHelper.csproj">
+      <Project>{c42b545c-b9fd-49ee-9842-302fa1d1ad40}</Project>
+      <Name>RoR2TestHelper</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

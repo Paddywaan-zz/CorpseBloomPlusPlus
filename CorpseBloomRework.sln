@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28010.2050
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CorpseBloomRework", "CorpseBloomRework\CorpseBloomRework.csproj", "{A0DEC514-DF63-4457-A990-5F6EBB227125}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoR2TestHelper", "..\RoR2TestHelper\RoR2TestHelper\RoR2TestHelper.csproj", "{C42B545C-B9FD-49EE-9842-302FA1D1AD40}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{A0DEC514-DF63-4457-A990-5F6EBB227125}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0DEC514-DF63-4457-A990-5F6EBB227125}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0DEC514-DF63-4457-A990-5F6EBB227125}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C42B545C-B9FD-49EE-9842-302FA1D1AD40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C42B545C-B9FD-49EE-9842-302FA1D1AD40}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C42B545C-B9FD-49EE-9842-302FA1D1AD40}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C42B545C-B9FD-49EE-9842-302FA1D1AD40}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
