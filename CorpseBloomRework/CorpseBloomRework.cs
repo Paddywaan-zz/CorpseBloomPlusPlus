@@ -3,14 +3,9 @@ using RoR2;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using R2API.Utils;
-using BepInEx;
-using RoR2;
 using UnityEngine;
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
 using System.Reflection;
 using System;
-using MonoMod.Utils;
 
 
 namespace Paddywan
@@ -19,14 +14,14 @@ namespace Paddywan
     /// Rebalance corpseBloom to provide greater benefits & proportional disadvantages.
     /// </summary>
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomRework", "1.0.1")]
+    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomRework", "1.0.0")]
     public class CorpseBloomRework : BaseUnityPlugin
     {
         public void Awake()
         {
 
 
-            //Scale the stacks of corpseblooms to provide %HP/s increase per stack
+            //Scale the stacks of corpseblooms to provide % HP / s increase per stack
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
                 var c = new ILCursor(il);
@@ -93,6 +88,47 @@ namespace Paddywan
                     );
                 c.MarkLabel(lab);
                 //Logger.LogInfo(il.ToString());
+            };
+
+
+            //Add regen over time to health reserve
+            IL.RoR2.HealthComponent.FixedUpdate += (il) =>
+            {
+                var c = new ILCursor(il);
+                Logger.LogInfo(il.ToString());
+                //GoTo: this.regenAccumulator -= num;
+                c.GotoNext(
+                    x => x.MatchLdfld<HealthComponent>("regenAccumulator"),
+                    x => x.MatchLdloc(0),
+                    x => x.MatchSub(),
+                    x => x.MatchStfld<HealthComponent>("regenAccumulator")
+                );
+                c.Index += 4; //NextLine
+
+                //c.RemoveRange(8);
+
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("regenAccumulator"));
+
+                c.EmitDelegate<Action<HealthComponent, float>>((hc, regenAccumulator) =>
+                {
+                    hc.Heal(regenAccumulator, default(ProcChainMask), true);
+                    //hc.Heal(regenAccumulator, default(ProcChainMask), false);
+                    //if (hc.body.inventory)
+                    //{
+                    //    Logger.LogInfo(hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal));
+                    //    if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) == 0)
+                    //    {
+                    //        hc.Heal(regenAccumulator, default(ProcChainMask), true);
+                    //    }
+                    //    else
+                    //    {
+                    //        //hc.Heal(regenAccumulator, default(ProcChainMask), false);
+                    //    }
+                    //}
+                });
+                Debug.Log(il.ToString());
             };
         }
         public void Update()
