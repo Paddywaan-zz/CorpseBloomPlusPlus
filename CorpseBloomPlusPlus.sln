@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2050
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CorpseBloomRework", "CorpseBloomRework\CorpseBloomRework.csproj", "{A0DEC514-DF63-4457-A990-5F6EBB227125}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CorpseBloomPlusPlus", "CorpseBloomPlusPlus\CorpseBloomPlusPlus.csproj", "{A0DEC514-DF63-4457-A990-5F6EBB227125}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoR2TestHelper", "..\RoR2TestHelper\RoR2TestHelper\RoR2TestHelper.csproj", "{C42B545C-B9FD-49EE-9842-302FA1D1AD40}"
 EndProject

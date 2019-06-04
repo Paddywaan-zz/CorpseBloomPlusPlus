@@ -14,12 +14,12 @@ namespace Paddywan
     /// Rebalance corpseBloom to provide greater benefits & proportional disadvantages.
     /// </summary>
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomRework", "1.0.0")]
-    public class CorpseBloomRework : BaseUnityPlugin
+    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomRework", "1.0.1")]
+    public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
         public void Awake()
         {
-            //Scale the stacks of corpseblooms to provide % HP / s increase per stack
+            //Scale the stacks of corpseblooms to provide % HP / s increase per stack, and -%Reserve per stack
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
                 //Increase the amount of health that can be accumulated per second
@@ -34,7 +34,6 @@ namespace Paddywan
                 c.Emit(OpCodes.Mul);
                 #endregion
 
-
                 //decrease the total health reserve that is restored
                 #region Disadvantage
                 c.GotoNext(
@@ -43,7 +42,6 @@ namespace Paddywan
                 x => x.MatchCallvirt<HealthComponent>("get_fullHealth")
                 );
                 c.Index += 3;
-
 
                 //c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
                 c.Emit(OpCodes.Ldarg_0); //this.
@@ -80,7 +78,7 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health")); //load healthComponent.health onto the stack.
 
-                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
                 c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth")); //load healthComponent.fullHealth onto the stack.
 
@@ -123,10 +121,5 @@ namespace Paddywan
                 //Debug.Log(il.ToString());
             };
         }
-
-        //public void Update()
-        //{
-        //    TestHelper.itemSpawnHelper();
-        //}
     }
 }
