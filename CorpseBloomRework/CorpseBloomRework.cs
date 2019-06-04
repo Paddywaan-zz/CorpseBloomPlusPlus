@@ -19,11 +19,11 @@ namespace Paddywan
     {
         public void Awake()
         {
-
-
             //Scale the stacks of corpseblooms to provide % HP / s increase per stack
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
+                //Increase the amount of health that can be accumulated per second
+                #region Benefit
                 var c = new ILCursor(il);
                 c.GotoNext(
                     x => x.MatchLdfld<HealthComponent>("repeatHealComponent"),
@@ -32,37 +32,39 @@ namespace Paddywan
                 c.Index += 5;
                 c.Remove();
                 c.Emit(OpCodes.Mul);
-            };
+                #endregion
 
-            //Scale the stacks of corpseblooms to decrease the total reservePool per stack, but allow rejuvination racks to scale in a positive manner.
-            IL.RoR2.HealthComponent.Heal += (il) =>
-            {
-                //Logger.LogInfo(il.ToString());
-                var c = new ILCursor(il);
+
+                //decrease the total health reserve that is restored
+                #region Disadvantage
                 c.GotoNext(
-                    x => x.MatchMul(),
-                    x => x.MatchLdarg(0),
-                    x => x.MatchCallvirt<HealthComponent>("get_fullHealth")
-                    );
+                x => x.MatchMul(),
+                x => x.MatchLdarg(0),
+                x => x.MatchCallvirt<HealthComponent>("get_fullHealth")
+                );
                 c.Index += 3;
-                c.Emit(OpCodes.Ldarg_0); //this.
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.increaseHealingCount pushed to stack.
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("increaseHealingCount"));
-                c.Emit(OpCodes.Conv_R4); //Convert top() to float.
-                c.Emit(OpCodes.Mul); //get_fullHealth * this.increaseHealingCount
 
+
+                //c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
                 c.Emit(OpCodes.Ldarg_0); //this.
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealCount")); //this.repeatHealCount pushed to stack.
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetProperty("get_fullHealth"));
                 c.Emit(OpCodes.Conv_R4); //Convert top() to float.
-                c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
-                c.Emit(OpCodes.Add); //add(1.0 + this.repeatHealCount)
-
                 c.Emit(OpCodes.Div); // (fullHealth * increaseHealingCount) / repeatHealCount
-                //Logger.LogInfo(il.ToString());
+
+                //Do not multiply HP by rejuvi racks, appears that they either native increase the totalHP reserved, or create another instance which reserves the totalHP modified above; thus it already scales on rejuviracks positively
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealCount"));
+
+                //c.EmitDelegate<Func<float, float>>((fhp) =>
+                //{
+                //    //return 1f;
+                //    Debug.Log(fhp.ToString());
+                //    return fhp;
+                //});
+                #endregion
             };
 
+            //Build reserve while fullHP, do not consume
             IL.RoR2.HealthComponent.RepeatHealComponent.FixedUpdate += (il) =>
             {
                 var c = new ILCursor(il);
@@ -90,7 +92,6 @@ namespace Paddywan
                 //Logger.LogInfo(il.ToString());
             };
 
-
             //Add regen over time to health reserve
             IL.RoR2.HealthComponent.FixedUpdate += (il) =>
             {
@@ -116,11 +117,16 @@ namespace Paddywan
                 {
                     if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
-                        hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve
+                        hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by differe
                     }
                 });
                 //Debug.Log(il.ToString());
             };
         }
+
+        //public void Update()
+        //{
+        //    TestHelper.itemSpawnHelper();
+        //}
     }
 }
