@@ -14,7 +14,7 @@ namespace Paddywan
     /// Rebalance corpseBloom to provide greater benefits & proportional disadvantages.
     /// </summary>
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomRework", "1.0.1")]
+    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomPlusPlus", "1.0.1")]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
         private float hpReserve = 0f;
@@ -64,7 +64,7 @@ namespace Paddywan
                 #endregion
             };
 
-            //Build reserve while fullHP, do not consume
+            //Build reserve while fullHP, do not consume. Update currentReserve
             IL.RoR2.HealthComponent.RepeatHealComponent.FixedUpdate += (il) =>
             {
                 var c = new ILCursor(il);
@@ -143,10 +143,10 @@ namespace Paddywan
             };
         }
 
-        public void Update()
-        {
-            TestHelper.itemSpawnHelper();
-            Debug.Log($"{currentReserve}:{hpReserve.ToString()}");
-        }
+        //public void Update()
+        //{
+        //    TestHelper.itemSpawnHelper();
+        //    Debug.Log($"{currentReserve}:{hpReserve.ToString()}");
+        //}
     }
 }
