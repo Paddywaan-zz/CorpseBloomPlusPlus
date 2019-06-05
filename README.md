@@ -36,3 +36,13 @@ v1.0.2 - HUD HealthReserve bar/guage, coming Soon™
 ##Changelog
 
 v1.0.1 - Released
+
+##Credits:
+
+A huge thanks to iDeathHD for his time & persistence in helping me to understand various structures & operations when working with IL. I'm sure I was incredibly frustrating to teach.
+
+Similarly, thanks to 0x0ade for his boundless knowledge and quickly pointing logical flaws & the correct way to accoumplish certain instructions.
+
+Thanks to KubeRoot for identifying mistakes & encouraging me to delve into IL.
+
+All of you are greatly apreciated, along with everyone else in #development.
