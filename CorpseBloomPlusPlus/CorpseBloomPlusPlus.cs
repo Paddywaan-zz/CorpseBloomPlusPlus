@@ -17,6 +17,8 @@ namespace Paddywan
     [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomRework", "1.0.1")]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
+        private float hpReserve = 0f;
+        private float currentReserve = 0f;
         public void Awake()
         {
             //Scale the stacks of corpseblooms to provide % HP / s increase per stack, and -%Reserve per stack
@@ -53,12 +55,12 @@ namespace Paddywan
                 //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
                 //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealCount"));
 
-                //c.EmitDelegate<Func<float, float>>((fhp) =>
-                //{
-                //    //return 1f;
-                //    Debug.Log(fhp.ToString());
-                //    return fhp;
-                //});
+                c.EmitDelegate<Func<float, float>>((fhp) =>
+                {
+                    //return 1f;
+                    hpReserve = fhp;
+                    return fhp;
+                });
                 #endregion
             };
 
@@ -66,13 +68,30 @@ namespace Paddywan
             IL.RoR2.HealthComponent.RepeatHealComponent.FixedUpdate += (il) =>
             {
                 var c = new ILCursor(il);
-                //Logger.LogInfo(il.ToString());
                 ILLabel lab = il.DefineLabel();
-                c.GotoNext( //match the timer and loading of 0f onto the stack, increment 3 instuctions to palce ourselves here: if(this.timer > 0f<here>)
+
+                #region updateCurrentReserveHP
+                c.GotoNext( //match the timer and loading of 0f onto the stack. Insert before.
+                    x => x.MatchLdarg(0),
                     x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "timer"),
                     x => x.MatchLdcR4(0f)
                     );
-                c.Index += 3;
+
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("reserve")); //Load reserve onto the stack.
+                c.EmitDelegate<Action<float>>((chp) =>
+                {
+                    currentReserve = chp; //Update currentHP value
+                });
+                #endregion
+
+                #region BuildReserves
+                c.GotoNext( //match the timer and loading of 0f onto the stack, increment 4 instuctions to palce ourselves here: if(this.timer > 0f<here>)
+                    x => x.MatchLdarg(0),
+                    x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "timer"),
+                    x => x.MatchLdcR4(0f)
+                    );
+                c.Index += 4;
 
                 c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
@@ -81,13 +100,14 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
                 c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth")); //load healthComponent.fullHealth onto the stack.
-
                 c.Emit(OpCodes.Bge_Un_S, lab); //branch to return if health > fullhealth
+
+                //Mark return address
                 c.GotoNext(
                     x => x.MatchRet()
                     );
                 c.MarkLabel(lab);
-                //Logger.LogInfo(il.ToString());
+                #endregion
             };
 
             //Add regen over time to health reserve
@@ -95,6 +115,7 @@ namespace Paddywan
             {
                 var c = new ILCursor(il);
                 //Logger.LogInfo(il.ToString());
+
                 //GoTo: this.regenAccumulator -= num;
                 c.GotoNext(
                     x => x.MatchLdfld<HealthComponent>("regenAccumulator"),
@@ -120,6 +141,12 @@ namespace Paddywan
                 });
                 //Debug.Log(il.ToString());
             };
+        }
+
+        public void Update()
+        {
+            TestHelper.itemSpawnHelper();
+            Debug.Log($"{currentReserve}:{hpReserve.ToString()}");
         }
     }
 }
