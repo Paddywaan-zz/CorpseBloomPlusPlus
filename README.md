@@ -24,12 +24,15 @@ I hope that this change will be well received as it targets some core parts of g
 
 
 ##Installation:
+
 Requires Bepinex, R2API.
 
 Place inside of Risk of Rain 2/Bepinex/Plugins/
 
-#Upcoming Features:
+##Upcoming Features:
+
 v1.0.2 - HUD HealthReserve bar/guage, coming Soon™
 
 ##Changelog
+
 v1.0.1 - Released
