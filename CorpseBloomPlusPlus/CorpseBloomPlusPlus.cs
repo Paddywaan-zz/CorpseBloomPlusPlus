@@ -6,6 +6,17 @@ using R2API.Utils;
 using UnityEngine;
 using System.Reflection;
 using System;
+using LeTai.Asset.TranslucentImage;
+//using TMPro;
+using UnityEngine.Networking;
+using UnityEngine.UI;
+using UnityEngine.Events;
+using BepInEx.Logging;
+//using MiniRpcLib;
+//using MiniRpcLib.Action;
+using RoR2.UI;
+//using TMPro;
+using System.Collections;
 
 
 namespace Paddywan
@@ -17,10 +28,18 @@ namespace Paddywan
     [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomPlusPlus", "1.0.1")]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
-        private float hpReserve = 0f;
+        private float reserveMax = 0f;
         private float currentReserve = 0f;
+
+        GameObject reserveRect = new GameObject();
+        GameObject reserveBar = new GameObject();
+        float percentReserve = 0f;
+        HealthBar hpBar;
+       
+
         public void Awake()
         {
+            
             //Scale the stacks of corpseblooms to provide % HP / s increase per stack, and -%Reserve per stack
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
@@ -58,7 +77,7 @@ namespace Paddywan
                 c.EmitDelegate<Func<float, float>>((fhp) =>
                 {
                     //return 1f;
-                    hpReserve = fhp;
+                    reserveMax = fhp;
                     return fhp;
                 });
                 #endregion
@@ -79,9 +98,16 @@ namespace Paddywan
 
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("reserve")); //Load reserve onto the stack.
-                c.EmitDelegate<Action<float>>((chp) =>
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
+                c.EmitDelegate<Action<float, HealthComponent>> ((curHP, hc) =>
                 {
-                    currentReserve = chp; //Update currentHP value
+                    //if (PlayerCharacterMasterController.instances[0].Equals(hc.body.master))
+                    if(LocalUserManager.GetFirstLocalUser().cachedBody == hc.body)
+                    { 
+                        currentReserve = curHP; //Update currentHP value
+                        Debug.Log("HC: " + hc.isLocalPlayer.ToString() + ". Body: " + hc.body.localPlayerAuthority.ToString() + ". PCMC: " + PlayerCharacterMasterController.instances[0].master.isLocalPlayer);
+                    }
                 });
                 #endregion
 
@@ -141,12 +167,87 @@ namespace Paddywan
                 });
                 //Debug.Log(il.ToString());
             };
+
+
+            On.RoR2.SceneDirector.Start += (orig, self) =>
+            {
+                initializeReserveUI(0f);
+                orig(self);
+            };
+
+            //On.RoR2.UI.HealthBar.Start += (self, orig) =>
+            //{
+            //    self(orig);
+            //};
+
+            //On.RoR2.UI.HighlightRect.DoUpdate += (self, orig) =>
+            //{
+            //    self(orig);
+            //};
+
+            On.RoR2.UI.HUD.Start += (self, orig) =>
+            {
+                self(orig);
+                reserveRect.transform.SetParent(orig.healthBar.transform, false);
+                hpBar = orig.healthBar;
+                //Debug.Log("Added ReserveBar to Parent");
+            };
+            Logger.Log(LogLevel.Info, "Run started");
         }
 
-        //public void Update()
-        //{
-        //    TestHelper.itemSpawnHelper();
-        //    Debug.Log($"{currentReserve}:{hpReserve.ToString()}");
-        //}
+        public void Update()
+        {
+            if (hpBar != null)
+            {
+                if (hpBar.source.body.inventory != null)
+                {
+                    if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
+                    {
+                        if (reserveRect.activeSelf == false)
+                        {
+                            //Debug.Log("CorpsePickup");
+                            reserveRect.SetActive(true);
+                        }
+                        else
+                        {
+                            //Debug.Log("PlayerHasCorpse");
+                            percentReserve = -0.5f + (currentReserve / reserveMax);
+                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
+                        }
+                    }
+                    else
+                    {
+                        if (reserveRect.activeSelf == true)
+                        {
+                            reserveRect.SetActive(false);
+                        }
+                    }
+                }
+            }
+            //Debug.Log($"{currentReserve}/{reserveMax}:{percentReserve}");
+            TestHelper.itemSpawnHelper();
+        }
+
+        public void initializeReserveUI(float offset)
+        {
+            reserveRect = new GameObject();
+            reserveRect.name = "ReserveRect";
+            reserveRect.AddComponent<RectTransform>();
+            reserveRect.GetComponent<RectTransform>().position = new Vector3(0f, 0f);
+            reserveRect.GetComponent<RectTransform>().anchoredPosition = new Vector2(210, 0);
+            reserveRect.GetComponent<RectTransform>().anchorMin = new Vector2(0, 0);
+            reserveRect.GetComponent<RectTransform>().anchorMax = new Vector2(0, 0);
+            reserveRect.GetComponent<RectTransform>().offsetMin = new Vector2(210, 0);
+            reserveRect.GetComponent<RectTransform>().offsetMax = new Vector2(210, 10);
+            reserveRect.GetComponent<RectTransform>().sizeDelta = new Vector2(420, 10);
+            reserveRect.GetComponent<RectTransform>().pivot = new Vector2(0, 0);
+
+            reserveBar = new GameObject();
+            reserveBar.name = "ReserveBar";
+            reserveBar.transform.SetParent(reserveRect.GetComponent<RectTransform>().transform);
+            reserveBar.AddComponent<RectTransform>().pivot = new Vector2(0, 0);
+            reserveBar.GetComponent<RectTransform>().sizeDelta = reserveRect.GetComponent<RectTransform>().sizeDelta;
+            reserveBar.AddComponent<Image>().color = new Color(1, 0.33f, 0, 1);
+        }
     }
 }
