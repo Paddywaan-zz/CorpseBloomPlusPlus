@@ -110,7 +110,7 @@ namespace Paddywan
                                     playerReserves[nu.GetCurrentBody().netId].maxReserve = fhp;
                                     //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
                                 }
-                                Debug.Log($"Updated {nu.GetCurrentBody().netId} to MR: {fhp}");
+                                //Debug.Log($"Updated {nu.GetCurrentBody().netId} to MR: {fhp}");
                             }
                             //Debug.Log("Looped through network users");
                         }
@@ -160,7 +160,7 @@ namespace Paddywan
                                     playerReserves.Add(nu.GetCurrentBody().netId, new CorpseReserve(curHP));
                                     //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
                                 }
-                                Debug.Log($"Updated {nu.GetCurrentBody().netId} to CR: {curHP}");
+                                //Debug.Log($"Updated {nu.GetCurrentBody().netId} to CR: {curHP}");
                             }
                             //Debug.Log("Looped through network users");
                         }
@@ -254,7 +254,7 @@ namespace Paddywan
                     if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
                     {
                         updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu);
-                        Debug.Log($"sent player their reserves {nu.GetCurrentBody().netId}");
+                        //Debug.Log($"sent player their reserves {nu.GetCurrentBody().netId}");
                     }
                 }
                 #endregion
@@ -287,7 +287,7 @@ namespace Paddywan
             #endregion
 
             //Debug.Log($"{currentReserve}/{reserveMax}:{percentReserve}");
-            TestHelper.itemSpawnHelper();
+            //TestHelper.itemSpawnHelper();
         }
 
         public void initializeReserveUI(float offset)
