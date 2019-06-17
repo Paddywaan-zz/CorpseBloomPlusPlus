@@ -97,19 +97,22 @@ namespace Paddywan
                     {
                         foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
                         {
-                            if (hc.body.netId == nu.netId)
+                            if (hc.body.netId == nu.GetCurrentBody().netId)
                             {
-                                if (playerReserves[nu.netId] != null)
+                                //if (playerReserves[nu.GetCurrentBody().netId] != null)
+                                if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
                                 {
-                                    playerReserves[nu.netId].maxReserve = fhp;
+                                    playerReserves[nu.GetCurrentBody().netId].maxReserve = fhp;
                                 }
                                 else
                                 {
-                                    playerReserves[nu.netId] = new CorpseReserve();
-                                    playerReserves[nu.netId].maxReserve = fhp;
+                                    playerReserves.Add(nu.GetCurrentBody().netId, new CorpseReserve());
+                                    playerReserves[nu.GetCurrentBody().netId].maxReserve = fhp;
+                                    //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
                                 }
-
+                                Debug.Log($"Updated {nu.GetCurrentBody().netId} to MR: {fhp}");
                             }
+                            //Debug.Log("Looped through network users");
                         }
                     }
                     return fhp;
@@ -145,18 +148,21 @@ namespace Paddywan
                     {
                         foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
                         {
-                            if (hc.body.netId == nu.netId)
+                            if (hc.body.netId == nu.GetCurrentBody().netId)
                             {
-                                if (playerReserves[nu.netId] != null)
+                                //if (playerReserves[nu.GetCurrentBody().netId] != null)
+                                if(playerReserves.ContainsKey(nu.GetCurrentBody().netId))
                                 {
-                                    playerReserves[nu.netId].currentReserve = curHP;
+                                    playerReserves[nu.GetCurrentBody().netId].currentReserve = curHP;
                                 }
                                 else
                                 {
-                                    playerReserves[nu.netId] = new CorpseReserve(curHP);
+                                    playerReserves.Add(nu.GetCurrentBody().netId, new CorpseReserve(curHP));
+                                    //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
                                 }
-
+                                Debug.Log($"Updated {nu.GetCurrentBody().netId} to CR: {curHP}");
                             }
+                            //Debug.Log("Looped through network users");
                         }
                     }
                 });
@@ -220,15 +226,16 @@ namespace Paddywan
             };
 
             //Hook scene director and load our UI changes on scene start
-            On.RoR2.SceneDirector.Start += (orig, self) =>
-            {
-                initializeReserveUI(0f);
-                orig(self);
-            };
+            //On.RoR2.SceneDirector.Start += (orig, self) =>
+            //{
+                
+            //    orig(self);
+            //};
 
             On.RoR2.UI.HUD.Start += (self, orig) =>
             {
                 self(orig);
+                initializeReserveUI(0f);
                 reserveRect.transform.SetParent(orig.healthBar.transform, false);
                 hpBar = orig.healthBar;
                 //Debug.Log("Added ReserveBar to Parent");
@@ -244,9 +251,10 @@ namespace Paddywan
                 #region updateNetClientReserves
                 foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
                 {
-                    if (playerReserves.ContainsKey(nu.netId))
+                    if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
                     {
-                        updateReserveCommand.Invoke(playerReserves[nu.netId], nu);
+                        updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu);
+                        Debug.Log($"sent player their reserves {nu.GetCurrentBody().netId}");
                     }
                 }
                 #endregion
