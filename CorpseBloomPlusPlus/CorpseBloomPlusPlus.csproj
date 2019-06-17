@@ -52,6 +52,9 @@
     <Reference Include="BepInEx.Preloader">
       <HintPath>Lib\BepinEx\core\BepInEx.Preloader.dll</HintPath>
     </Reference>
+    <Reference Include="MiniRpcLib">
+      <HintPath>Lib\BepinEx\plugins\MiniRpcLib.dll</HintPath>
+    </Reference>
     <Reference Include="MMHOOK_Assembly-CSharp">
       <HintPath>Lib\BepinEx\plugins\R2API\MMHOOK_Assembly-CSharp.dll</HintPath>
     </Reference>
@@ -97,6 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CorpseBloomPlusPlus.cs" />
+    <Compile Include="corpseReserve.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -3,21 +3,17 @@ using RoR2;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using R2API.Utils;
-using UnityEngine;
 using System.Reflection;
 using System;
-using LeTai.Asset.TranslucentImage;
-//using TMPro;
-using UnityEngine.Networking;
+using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Events;
+using UnityEngine.Networking;
 using BepInEx.Logging;
-//using MiniRpcLib;
-//using MiniRpcLib.Action;
 using RoR2.UI;
-//using TMPro;
-using System.Collections;
-
+using MiniRpcLib;
+using MiniRpcLib.Action;
+using MiniRpcLib.Func;
+using System.Collections.Generic;
 
 namespace Paddywan
 {
@@ -25,9 +21,14 @@ namespace Paddywan
     /// Rebalance corpseBloom to provide greater benefits & proportional disadvantages.
     /// </summary>
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Paddywan.CorpseBloomRework", "CorpseBloomPlusPlus", "1.0.1")]
+    [BepInDependency(MiniRpcPlugin.Dependency)]
+    [BepInPlugin(ModGuid, ModName, ModVer)]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
+        private const string ModVer = "1.0.2";
+        private const string ModName = "CorpseBloomPlusPlus";
+        private const string ModGuid = "com.Paddywan.CorpseBloomRework";
+
         private float reserveMax = 0f;
         private float currentReserve = 0f;
 
@@ -35,11 +36,23 @@ namespace Paddywan
         GameObject reserveBar = new GameObject();
         float percentReserve = 0f;
         HealthBar hpBar;
-       
+
+        Dictionary<NetworkInstanceId, CorpseReserve> playerReserves = new Dictionary<NetworkInstanceId, CorpseReserve>();
+        public IRpcAction<CorpseReserve> updateReserveCommand { get; set; }
+
+        public CorpseBloomPlusPlus()
+        {
+            var miniRpc = MiniRpc.CreateInstance(ModGuid);
+            updateReserveCommand = miniRpc.RegisterAction(Target.Client, (NetworkUser user, CorpseReserve cr) =>
+            {
+                currentReserve = cr.currentReserve;
+                reserveMax = cr.maxReserve;
+                Debug.Log($"CR: {currentReserve}; MR: {reserveMax};");
+            });
+        }
 
         public void Awake()
         {
-            
             //Scale the stacks of corpseblooms to provide % HP / s increase per stack, and -%Reserve per stack
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
@@ -69,15 +82,36 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
                 c.Emit(OpCodes.Conv_R4); //Convert top() to float.
                 c.Emit(OpCodes.Div); // (fullHealth * increaseHealingCount) / repeatHealCount
-
+                c.Emit(OpCodes.Ldarg_0);
                 //Do not multiply HP by rejuvi racks, appears that they either native increase the totalHP reserved, or create another instance which reserves the totalHP modified above; thus it already scales on rejuviracks positively
                 //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
                 //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealCount"));
 
-                c.EmitDelegate<Func<float, float>>((fhp) =>
+                c.EmitDelegate<Func<float, HealthComponent, float>>((fhp, hc) =>
                 {
-                    //return 1f;
-                    reserveMax = fhp;
+                    if (LocalUserManager.GetFirstLocalUser().cachedBody.Equals(hc.body)) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
+                    {
+                        reserveMax = fhp;
+                    }
+                    else //Health component belongs to a network user
+                    {
+                        foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                        {
+                            if (hc.body.netId == nu.netId)
+                            {
+                                if (playerReserves[nu.netId] != null)
+                                {
+                                    playerReserves[nu.netId].maxReserve = fhp;
+                                }
+                                else
+                                {
+                                    playerReserves[nu.netId] = new CorpseReserve();
+                                    playerReserves[nu.netId].maxReserve = fhp;
+                                }
+
+                            }
+                        }
+                    }
                     return fhp;
                 });
                 #endregion
@@ -102,11 +136,28 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
                 c.EmitDelegate<Action<float, HealthComponent>> ((curHP, hc) =>
                 {
-                    //if (PlayerCharacterMasterController.instances[0].Equals(hc.body.master))
-                    if(LocalUserManager.GetFirstLocalUser().cachedBody == hc.body)
+                    if(LocalUserManager.GetFirstLocalUser().cachedBody == hc.body) //check if the HealthComponent instance belongs to the local user (host - clients do not execute fixed update)
                     { 
                         currentReserve = curHP; //Update currentHP value
-                        Debug.Log("HC: " + hc.isLocalPlayer.ToString() + ". Body: " + hc.body.localPlayerAuthority.ToString() + ". PCMC: " + PlayerCharacterMasterController.instances[0].master.isLocalPlayer);
+                        //Debug.Log("HC: " + hc.isLocalPlayer.ToString() + ". Body: " + hc.body.localPlayerAuthority.ToString() + ". PCMC: " + PlayerCharacterMasterController.instances[0].master.isLocalPlayer);
+                    }
+                    else //Health component belongs to a network user
+                    {
+                        foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                        {
+                            if (hc.body.netId == nu.netId)
+                            {
+                                if (playerReserves[nu.netId] != null)
+                                {
+                                    playerReserves[nu.netId].currentReserve = curHP;
+                                }
+                                else
+                                {
+                                    playerReserves[nu.netId] = new CorpseReserve(curHP);
+                                }
+
+                            }
+                        }
                     }
                 });
                 #endregion
@@ -162,28 +213,18 @@ namespace Paddywan
                 {
                     if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
-                        hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by differe
+                        hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by different conditions.
                     }
                 });
                 //Debug.Log(il.ToString());
             };
 
-
+            //Hook scene director and load our UI changes on scene start
             On.RoR2.SceneDirector.Start += (orig, self) =>
             {
                 initializeReserveUI(0f);
                 orig(self);
             };
-
-            //On.RoR2.UI.HealthBar.Start += (self, orig) =>
-            //{
-            //    self(orig);
-            //};
-
-            //On.RoR2.UI.HighlightRect.DoUpdate += (self, orig) =>
-            //{
-            //    self(orig);
-            //};
 
             On.RoR2.UI.HUD.Start += (self, orig) =>
             {
@@ -192,13 +233,24 @@ namespace Paddywan
                 hpBar = orig.healthBar;
                 //Debug.Log("Added ReserveBar to Parent");
             };
-            Logger.Log(LogLevel.Info, "Run started");
+            //Logger.Log(LogLevel.Info, "Run started");
         }
 
         public void Update()
         {
+            #region updateReserveUI
             if (hpBar != null)
             {
+                #region updateNetClientReserves
+                foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                {
+                    if (playerReserves.ContainsKey(nu.netId))
+                    {
+                        updateReserveCommand.Invoke(playerReserves[nu.netId], nu);
+                    }
+                }
+                #endregion
+
                 if (hpBar.source.body.inventory != null)
                 {
                     if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
@@ -224,12 +276,15 @@ namespace Paddywan
                     }
                 }
             }
+            #endregion
+
             //Debug.Log($"{currentReserve}/{reserveMax}:{percentReserve}");
             TestHelper.itemSpawnHelper();
         }
 
         public void initializeReserveUI(float offset)
         {
+            #region reserveBarContainer
             reserveRect = new GameObject();
             reserveRect.name = "ReserveRect";
             reserveRect.AddComponent<RectTransform>();
@@ -241,13 +296,16 @@ namespace Paddywan
             reserveRect.GetComponent<RectTransform>().offsetMax = new Vector2(210, 10);
             reserveRect.GetComponent<RectTransform>().sizeDelta = new Vector2(420, 10);
             reserveRect.GetComponent<RectTransform>().pivot = new Vector2(0, 0);
+            #endregion
 
+            #region reserveBar
             reserveBar = new GameObject();
             reserveBar.name = "ReserveBar";
             reserveBar.transform.SetParent(reserveRect.GetComponent<RectTransform>().transform);
             reserveBar.AddComponent<RectTransform>().pivot = new Vector2(0, 0);
             reserveBar.GetComponent<RectTransform>().sizeDelta = reserveRect.GetComponent<RectTransform>().sizeDelta;
             reserveBar.AddComponent<Image>().color = new Color(1, 0.33f, 0, 1);
+            #endregion
         }
     }
 }
