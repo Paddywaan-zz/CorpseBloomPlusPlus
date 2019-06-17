@@ -2,6 +2,7 @@
 CorpseBloomPlusPlus modifies the functionality of the Corpse bloom in some key areas in order to make the item much more effective, rewarding, situational, while still maintaining scaling balance.
 The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits to which other items do not posses.
 To this end, many synergies and item combinations are a possible effective use with this modification of CorpseBloom, allowing players to effectively distribute more "useless" loot to a playstyle in which it becomes an effective core mechanic of gameplay.
+
 \*NEW\* CorpseBloomPlusPlus now has a Reserve Healthbar!
 
 ## Per default: 
@@ -20,14 +21,14 @@ Healing is "stored", so if the user is healed to maximum life, and then take dam
 * CorpseBlooms do NOT heal when player is full HP. Healing is instead stored in reserve.
 * CorpseBlooms are now affected by all health regeneration effects.
 * CorpseBlooms do not provide any regenerative effects by themselves, they only scale existing sources of healing (not actually a change, just a clarification).
-* Picking up a CorpseBloom will now load a new HealthBar undernearth the existing one, which displays the % & max capacity.
+* Picking up a CorpseBloom will now load a new HealthBar undernearth the existing one, which displays the % & max capacity in reserve. Works in single & multiplayer.
 
 I hope that this change will be well received as it targets some core parts of gameplay & items which have been long overlooked by many in the community due to superior options elsewhere; however this mechanic should now provide a uniquely beneficial component to regenerative effects which do not currently exist in a useful manner within the game.
 
 
 ## Installation:
 
-Requires Bepinex, R2API.
+Requires Bepinex, R2API, MiniRPCLib.
 
 Place inside of Risk of Rain 2/Bepinex/Plugins/
 
@@ -43,7 +44,7 @@ v1.0.1 - Released
 
 ## Issues:
 
-None known yet*
+Cannot view other players reserveBar while dead/spectating.
 
 ## Credits:
 
