@@ -95,35 +95,15 @@ namespace Paddywan
                                 reserveMax = fhp;
                             }
                         }
-                        //else
-                        //{
-                            //if (hc.body.netId != null)
-                            //{
-                                if (playerReserves.ContainsKey(hc.body.netId))
-                                {
-                                    playerReserves[hc.body.netId].maxReserve = fhp;
-                                }
-                                else
-                                {
-                                    playerReserves.Add(hc.body.netId, new CorpseReserve());
-                                    playerReserves[hc.body.netId].maxReserve = fhp;
-                                    //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
-                                }
-                                //Debug.Log($"Updated {nu.GetCurrentBody().netId} to MR: {fhp}");
-                                //foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList) //NU might actually be redundant
-                                //{
-                                //    if (nu.GetCurrentBody() != null)
-                                //    {
-                                //        if (hc.body.netId == nu.GetCurrentBody().netId)
-                                //        {
-                                //            //if (playerReserves[nu.GetCurrentBody().netId] != null)
-
-                                //        }
-                                //    }
-                                //    //Debug.Log("Looped through network users");
-                                //}
-                            //}
-                        //}
+                        if (playerReserves.ContainsKey(hc.body.netId))
+                        {
+                            playerReserves[hc.body.netId].maxReserve = fhp;
+                        }
+                        else
+                        {
+                            playerReserves.Add(hc.body.netId, new CorpseReserve());
+                            playerReserves[hc.body.netId].maxReserve = fhp;
+                        }
                     }
                     return fhp;
                 });
@@ -158,9 +138,6 @@ namespace Paddywan
                                 currentReserve = curHP; //Update currentHP value
                             }
                         }
-                        //else //Health component belongs to a network user
-                        //{
-                        //if (playerReserves[nu.GetCurrentBody().netId] != null)
                         if (playerReserves.ContainsKey(hc.body.netId))
                         {
                             playerReserves[hc.body.netId].currentReserve = curHP;
@@ -168,25 +145,7 @@ namespace Paddywan
                         else
                         {
                             playerReserves.Add(hc.body.netId, new CorpseReserve(curHP));
-                            //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
                         }
-                            //if (hc.body.netId != null)
-                            //{
-                            //    foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
-                            //    {
-                            //        if (nu.GetCurrentBody() != null)
-                            //        {
-                            //            if (hc.body.netId == nu.GetCurrentBody().netId)
-                            //            {
-
-                            //                //Debug.Log($"Updated {nu.GetCurrentBody().netId} to CR: {curHP}");
-                            //            }
-                            //        }
-                            //        //Debug.Log("Looped through network users");
-                            //    }
-                            //}
-                        //}
-
                     }
                 });
                 #endregion
@@ -274,7 +233,7 @@ namespace Paddywan
                             if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
                             {
                                 updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu);
-                                Debug.Log($"sent player[{nu.GetCurrentBody().netId}] reserve: [{playerReserves[nu.GetCurrentBody().netId].currentReserve},{playerReserves[nu.GetCurrentBody().netId].maxReserve}]");
+                                //Debug.Log($"sent player[{nu.GetCurrentBody().netId}] reserve: [{playerReserves[nu.GetCurrentBody().netId].currentReserve},{playerReserves[nu.GetCurrentBody().netId].maxReserve}]");
                             }
                         }
                     }
