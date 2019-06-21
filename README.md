@@ -1,7 +1,7 @@
 # CorpseBloomPlusPlus
 CorpseBloomPlusPlus modifies the functionality of the Corpse bloom in some key areas in order to make the item much more effective, rewarding, situational, while still maintaining scaling balance.
-The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits to which other items do not posses.
-To this end, many synergies and item combinations are a possible effective use with this modification of CorpseBloom, allowing players to effectively distribute more "useless" loot to a playstyle in which it becomes an effective core mechanic of gameplay.
+The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits which other items do not posses.
+I hope that this change will be well received as it targets some core parts of gameplay & items which have been long overlooked by many in the community due to superior options elsewhere; however this mechanic should now provide a uniquely beneficial component to regenerative healing effects.
 
 \*NEW\* CorpseBloomPlusPlus now has a Reserve Healthbar!
 
@@ -17,14 +17,13 @@ Healing is "stored", so if the user is healed to maximum life, and then take dam
 
 * CorpseBlooms increase Healing by 100% per stack, and increase maximum healing per second by 10% per stack.
 * CorpseBlooms decrease Healing Reserves by TotalReserves(100% HP with one CorpseBloom) / Stack#.
-* CorpseBlooms Reserve HP can be increased by 100%*Rejuvenation Rack#
+* CorpseBlooms Reserve HP can be increased by 100% \* Rejuvenation Rack#
 * CorpseBlooms do NOT heal when player is full HP. Healing is instead stored in reserve.
 * CorpseBlooms are now affected by all health regeneration effects.
 * CorpseBlooms do not provide any regenerative effects by themselves, they only scale existing sources of healing (not actually a change, just a clarification).
-* Picking up a CorpseBloom will now load a new HealthBar undernearth the existing one, which displays the % & max capacity in reserve. Works in single & multiplayer.
+* CorpseBlooms will now load a ReserveHealthBar undernearth the existing HealthBar, which displays the healing % in reserve. Works in single & multiplayer.
 
-I hope that this change will be well received as it targets some core parts of gameplay & items which have been long overlooked by many in the community due to superior options elsewhere; however this mechanic should now provide a uniquely beneficial component to regenerative effects which do not currently exist in a useful manner within the game.
-
+All players in the server will be affected by CorpseBloomPlusPlus should they take a CorpseBloom; but only those with the mod will see the UI.
 
 ## Installation:
 
@@ -34,17 +33,21 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 
 ## Upcoming Features:
 
-v1.0.3 - Spectate other players healthbar?
+v1.0.4 - Spectate other players healthbar?
+
+v1.0.4 - Fix UI "randomly" not loading on initialization.
 
 ## Changelog:
+v1.0.3 - Fixed NullRef on playerDeath.
 
 v1.0.2 - UI HealthReserveBar implemented with netcode.
 
-v1.0.1 - Released
+v1.0.1 - Released.
 
 ## Issues:
 
 Cannot view other players reserveBar while dead/spectating.
+When HealthBar is initialized for the first time, sometimes does not display. Progress to next map for fix.
 
 ## Credits:
 
