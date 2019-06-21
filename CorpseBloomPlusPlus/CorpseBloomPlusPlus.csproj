@@ -100,7 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CorpseBloomPlusPlus.cs" />
-    <Compile Include="corpseReserve.cs" />
+    <Compile Include="CorpseReserve.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

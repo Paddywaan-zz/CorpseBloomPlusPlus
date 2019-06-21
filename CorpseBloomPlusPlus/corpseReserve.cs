@@ -19,7 +19,6 @@ namespace Paddywan
 {
     public class CorpseReserve : MessageBase
     {
-        //public NetworkInstanceId netid { get; set; }
         public float currentReserve { get; set; }
         public float maxReserve { get; set; }
 
@@ -31,13 +30,11 @@ namespace Paddywan
 
         public CorpseReserve(float current)
         {
-            //this.netid = id;
             this.currentReserve = current;
         }
 
         public CorpseReserve(float current, float max)
         {
-            //this.netid = id;
             this.currentReserve = current;
             this.maxReserve = max;
         }
@@ -54,8 +51,8 @@ namespace Paddywan
         }
         public override void Deserialize(NetworkReader reader)
         {
-            currentReserve = reader.ReadSingle();
-            maxReserve = reader.ReadSingle();
+            this.currentReserve = reader.ReadSingle();
+            this.maxReserve = reader.ReadSingle();
         }
     }
 }

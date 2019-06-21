@@ -1,9 +1,9 @@
 # CorpseBloomPlusPlus
 CorpseBloomPlusPlus modifies the functionality of the Corpse bloom in some key areas in order to make the item much more effective, rewarding, situational, while still maintaining scaling balance.
-The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits which other items do not posses.
+The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits which other items do not possess.
 I hope that this change will be well received as it targets some core parts of gameplay & items which have been long overlooked by many in the community due to superior options elsewhere; however this mechanic should now provide a uniquely beneficial component to regenerative healing effects.
 
-\*NEW\* CorpseBloomPlusPlus now has a Reserve Healthbar!
+\*NEW\* CorpseBloomPlusPlus now has a Reserve HealthBar!
 
 ## Per default: 
 
@@ -21,7 +21,7 @@ Healing is "stored", so if the user is healed to maximum life, and then take dam
 * CorpseBlooms do NOT heal when player is full HP. Healing is instead stored in reserve.
 * CorpseBlooms are now affected by all health regeneration effects.
 * CorpseBlooms do not provide any regenerative effects by themselves, they only scale existing sources of healing (not actually a change, just a clarification).
-* CorpseBlooms will now load a ReserveHealthBar undernearth the existing HealthBar, which displays the healing % in reserve. Works in single & multiplayer.
+* CorpseBlooms will now load a ReserveHealthBar underneath the existing HealthBar, which displays the healing % in reserve. Works in single & multiplayer.
 
 All players in the server will be affected by CorpseBloomPlusPlus should they take a CorpseBloom; but only those with the mod will see the UI.
 
@@ -33,30 +33,32 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 
 ## Upcoming Features:
 
-v1.0.4 - Spectate other players healthbar?
+v1.0.4 - Spectate other players HealthBar?
 
 v1.0.4 - Fix UI "randomly" not loading on initialization.
 
 ## Changelog:
-v1.0.3 - Fixed NullRef on playerDeath.
+v1.0.3 - Fixed NullRef on player death.
 
-v1.0.2 - UI HealthReserveBar implemented with netcode.
+v1.0.2 - UI HealthReserveBar implemented with net code.
 
 v1.0.1 - Released.
 
 ## Issues:
 
-Cannot view other players reserveBar while dead/spectating.
+Cannot view other players reserve bar while dead/spectating.
 When HealthBar is initialized for the first time, sometimes does not display. Progress to next map for fix.
 
 ## Credits:
 
 A huge thanks to iDeathHD for his time & persistence in helping me to understand various structures & operations when working with IL. I'm sure I was incredibly frustrating to teach.
 
-Similarly, thanks to 0x0ade for his boundless knowledge and quickly pointing logical flaws & the correct way to accoumplish certain instructions.
+Similarly, thanks to 0x0ade for his experience and quickly pointing logical flaws & the correct way to accomplish certain instructions.
 
 Thanks to KubeRoot for identifying mistakes & encouraging me to delve into IL.
 
-Thanks to Wildbook's MiniRPCLib for making the netcode so incredibly convenient to implement!
+Thanks to Wildbook's MiniRPCLib for making the net code so incredibly convenient to implement!
 
-All of you are greatly apreciated, along with everyone else in #development.
+Credit to CoiL#0518 for the Icon artwork!
+
+All of you are greatly appreciated, along with everyone else in #development.

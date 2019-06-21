@@ -46,7 +46,7 @@ namespace Paddywan
                 {
                     currentReserve = cr.currentReserve;
                     reserveMax = cr.maxReserve;
-                    Debug.Log($"CR: {currentReserve}; MR: {reserveMax};");
+                    //Debug.Log($"CR: {currentReserve}; MR: {reserveMax};");
                 }
             });
         }
@@ -84,13 +84,14 @@ namespace Paddywan
                 c.Emit(OpCodes.Div); // (fullHealth * increaseHealingCount) / repeatHealCount
                 c.Emit(OpCodes.Ldarg_0);
 
+                //Update each CorpseBloom owner's FullHealthReserve value
                 c.EmitDelegate<Func<float, HealthComponent, float>>((fhp, hc) =>
                 {
                     if (hc.body != null)
                     {
-                        if (LocalUserManager.GetFirstLocalUser().cachedBody != null)
+                        if (LocalUserManager.GetFirstLocalUser().cachedBody != null) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
                         {
-                            if (hc.body.Equals(LocalUserManager.GetFirstLocalUser().cachedBody)) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
+                            if (hc.body.Equals(LocalUserManager.GetFirstLocalUser().cachedBody)) 
                             {
                                 reserveMax = fhp;
                             }
@@ -127,6 +128,8 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("reserve")); //Load reserve onto the stack.
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
+                
+                //Update each CorpseBloom owner's CurrentReserve value
                 c.EmitDelegate<Action<float, HealthComponent>> ((curHP, hc) =>
                 {
                     if (hc.body != null)
@@ -204,7 +207,6 @@ namespace Paddywan
                         hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by different conditions.
                     }
                 });
-                //Debug.Log(il.ToString());
             };
 
             //Add reserveUI to HealthBar
@@ -221,6 +223,7 @@ namespace Paddywan
         //Update reserveUI
         public void Update()
         {
+            //Send CorpseReserves to all CorpseBloom owners
             #region updateNetClientReserves
             if (NetworkServer.active)
             {
@@ -241,6 +244,7 @@ namespace Paddywan
             }
             #endregion
 
+            //Create reserveUI when player owns CorpseBloom, update sizes.
             #region updateReserveUI
             if (hpBar != null)
             {
@@ -250,12 +254,10 @@ namespace Paddywan
                     {
                         if (reserveRect.activeSelf == false)
                         {
-                            //Debug.Log("CorpsePickup");
                             reserveRect.SetActive(true);
                         }
                         else
                         {
-                            //Debug.Log("PlayerHasCorpse");
                             percentReserve = -0.5f + (currentReserve / reserveMax);
                             reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
@@ -270,6 +272,7 @@ namespace Paddywan
                 }
             }
             #endregion
+
             //TestHelper.itemSpawnHelper();
         }
 
