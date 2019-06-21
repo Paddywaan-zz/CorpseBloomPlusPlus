@@ -25,18 +25,15 @@ namespace Paddywan
     [BepInPlugin(ModGuid, ModName, ModVer)]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
-        private const string ModVer = "1.0.2";
+        private const string ModVer = "1.0.3";
         private const string ModName = "CorpseBloomPlusPlus";
         private const string ModGuid = "com.Paddywan.CorpseBloomRework";
-
         private float reserveMax = 0f;
         private float currentReserve = 0f;
-
         GameObject reserveRect = new GameObject();
         GameObject reserveBar = new GameObject();
         float percentReserve = 0f;
         HealthBar hpBar;
-
         Dictionary<NetworkInstanceId, CorpseReserve> playerReserves = new Dictionary<NetworkInstanceId, CorpseReserve>();
         public IRpcAction<CorpseReserve> updateReserveCommand { get; set; }
 
@@ -45,9 +42,12 @@ namespace Paddywan
             var miniRpc = MiniRpc.CreateInstance(ModGuid);
             updateReserveCommand = miniRpc.RegisterAction(Target.Client, (NetworkUser user, CorpseReserve cr) =>
             {
-                currentReserve = cr.currentReserve;
-                reserveMax = cr.maxReserve;
-                Debug.Log($"CR: {currentReserve}; MR: {reserveMax};");
+                if (cr != null)
+                {
+                    currentReserve = cr.currentReserve;
+                    reserveMax = cr.maxReserve;
+                    Debug.Log($"CR: {currentReserve}; MR: {reserveMax};");
+                }
             });
         }
 
@@ -83,37 +83,47 @@ namespace Paddywan
                 c.Emit(OpCodes.Conv_R4); //Convert top() to float.
                 c.Emit(OpCodes.Div); // (fullHealth * increaseHealingCount) / repeatHealCount
                 c.Emit(OpCodes.Ldarg_0);
-                //Do not multiply HP by rejuvi racks, appears that they either native increase the totalHP reserved, or create another instance which reserves the totalHP modified above; thus it already scales on rejuviracks positively
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealCount"));
 
                 c.EmitDelegate<Func<float, HealthComponent, float>>((fhp, hc) =>
                 {
-                    if (LocalUserManager.GetFirstLocalUser().cachedBody.Equals(hc.body)) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
+                    if (hc.body != null)
                     {
-                        reserveMax = fhp;
-                    }
-                    else //Health component belongs to a network user
-                    {
-                        foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                        if (LocalUserManager.GetFirstLocalUser().cachedBody != null)
                         {
-                            if (hc.body.netId == nu.GetCurrentBody().netId)
+                            if (hc.body.Equals(LocalUserManager.GetFirstLocalUser().cachedBody)) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
                             {
-                                //if (playerReserves[nu.GetCurrentBody().netId] != null)
-                                if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
+                                reserveMax = fhp;
+                            }
+                        }
+                        //else
+                        //{
+                            //if (hc.body.netId != null)
+                            //{
+                                if (playerReserves.ContainsKey(hc.body.netId))
                                 {
-                                    playerReserves[nu.GetCurrentBody().netId].maxReserve = fhp;
+                                    playerReserves[hc.body.netId].maxReserve = fhp;
                                 }
                                 else
                                 {
-                                    playerReserves.Add(nu.GetCurrentBody().netId, new CorpseReserve());
-                                    playerReserves[nu.GetCurrentBody().netId].maxReserve = fhp;
+                                    playerReserves.Add(hc.body.netId, new CorpseReserve());
+                                    playerReserves[hc.body.netId].maxReserve = fhp;
                                     //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
                                 }
                                 //Debug.Log($"Updated {nu.GetCurrentBody().netId} to MR: {fhp}");
-                            }
-                            //Debug.Log("Looped through network users");
-                        }
+                                //foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList) //NU might actually be redundant
+                                //{
+                                //    if (nu.GetCurrentBody() != null)
+                                //    {
+                                //        if (hc.body.netId == nu.GetCurrentBody().netId)
+                                //        {
+                                //            //if (playerReserves[nu.GetCurrentBody().netId] != null)
+
+                                //        }
+                                //    }
+                                //    //Debug.Log("Looped through network users");
+                                //}
+                            //}
+                        //}
                     }
                     return fhp;
                 });
@@ -139,31 +149,44 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
                 c.EmitDelegate<Action<float, HealthComponent>> ((curHP, hc) =>
                 {
-                    if(LocalUserManager.GetFirstLocalUser().cachedBody == hc.body) //check if the HealthComponent instance belongs to the local user (host - clients do not execute fixed update)
-                    { 
-                        currentReserve = curHP; //Update currentHP value
-                        //Debug.Log("HC: " + hc.isLocalPlayer.ToString() + ". Body: " + hc.body.localPlayerAuthority.ToString() + ". PCMC: " + PlayerCharacterMasterController.instances[0].master.isLocalPlayer);
-                    }
-                    else //Health component belongs to a network user
+                    if (hc.body != null)
                     {
-                        foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                        if (LocalUserManager.GetFirstLocalUser().cachedBody != null)
                         {
-                            if (hc.body.netId == nu.GetCurrentBody().netId)
+                            if (LocalUserManager.GetFirstLocalUser().cachedBody.Equals(hc.body)) //check if the HealthComponent instance belongs to the local user (host - clients do not execute fixed update)
                             {
-                                //if (playerReserves[nu.GetCurrentBody().netId] != null)
-                                if(playerReserves.ContainsKey(nu.GetCurrentBody().netId))
-                                {
-                                    playerReserves[nu.GetCurrentBody().netId].currentReserve = curHP;
-                                }
-                                else
-                                {
-                                    playerReserves.Add(nu.GetCurrentBody().netId, new CorpseReserve(curHP));
-                                    //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
-                                }
-                                //Debug.Log($"Updated {nu.GetCurrentBody().netId} to CR: {curHP}");
+                                currentReserve = curHP; //Update currentHP value
                             }
-                            //Debug.Log("Looped through network users");
                         }
+                        //else //Health component belongs to a network user
+                        //{
+                        //if (playerReserves[nu.GetCurrentBody().netId] != null)
+                        if (playerReserves.ContainsKey(hc.body.netId))
+                        {
+                            playerReserves[hc.body.netId].currentReserve = curHP;
+                        }
+                        else
+                        {
+                            playerReserves.Add(hc.body.netId, new CorpseReserve(curHP));
+                            //playerReserves[nu.GetCurrentBody().netId] = new CorpseReserve(curHP);
+                        }
+                            //if (hc.body.netId != null)
+                            //{
+                            //    foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                            //    {
+                            //        if (nu.GetCurrentBody() != null)
+                            //        {
+                            //            if (hc.body.netId == nu.GetCurrentBody().netId)
+                            //            {
+
+                            //                //Debug.Log($"Updated {nu.GetCurrentBody().netId} to CR: {curHP}");
+                            //            }
+                            //        }
+                            //        //Debug.Log("Looped through network users");
+                            //    }
+                            //}
+                        //}
+
                     }
                 });
                 #endregion
@@ -225,40 +248,43 @@ namespace Paddywan
                 //Debug.Log(il.ToString());
             };
 
-            //Hook scene director and load our UI changes on scene start
-            //On.RoR2.SceneDirector.Start += (orig, self) =>
-            //{
-                
-            //    orig(self);
-            //};
-
+            //Add reserveUI to HealthBar
             On.RoR2.UI.HUD.Start += (self, orig) =>
             {
                 self(orig);
                 initializeReserveUI(0f);
                 reserveRect.transform.SetParent(orig.healthBar.transform, false);
                 hpBar = orig.healthBar;
-                //Debug.Log("Added ReserveBar to Parent");
             };
-            //Logger.Log(LogLevel.Info, "Run started");
+
         }
 
+        //Update reserveUI
         public void Update()
         {
+            #region updateNetClientReserves
+            if (NetworkServer.active)
+            {
+                foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
+                {
+                    if (nu.GetCurrentBody() != null)
+                    {
+                        if (nu.GetCurrentBody().healthComponent.alive)
+                        {
+                            if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
+                            {
+                                updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu);
+                                Debug.Log($"sent player[{nu.GetCurrentBody().netId}] reserve: [{playerReserves[nu.GetCurrentBody().netId].currentReserve},{playerReserves[nu.GetCurrentBody().netId].maxReserve}]");
+                            }
+                        }
+                    }
+                }
+            }
+            #endregion
+
             #region updateReserveUI
             if (hpBar != null)
             {
-                #region updateNetClientReserves
-                foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
-                {
-                    if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
-                    {
-                        updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu);
-                        //Debug.Log($"sent player their reserves {nu.GetCurrentBody().netId}");
-                    }
-                }
-                #endregion
-
                 if (hpBar.source.body.inventory != null)
                 {
                     if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
@@ -285,12 +311,11 @@ namespace Paddywan
                 }
             }
             #endregion
-
-            //Debug.Log($"{currentReserve}/{reserveMax}:{percentReserve}");
             //TestHelper.itemSpawnHelper();
         }
 
-        public void initializeReserveUI(float offset)
+        //Create UI components
+        void initializeReserveUI(float offset)
         {
             #region reserveBarContainer
             reserveRect = new GameObject();
