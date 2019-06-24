@@ -5,6 +5,8 @@ I hope that this change will be well received as it targets some core parts of g
 
 \*NEW\* CorpseBloomPlusPlus now has a Reserve HealthBar!
 
+https://streamable.com/2bd7t
+
 ## Per default: 
 
 "The CorpseBloom is a Lunar item introduced in Risk of Rain 2.
@@ -15,13 +17,15 @@ Healing is "stored", so if the user is healed to maximum life, and then take dam
 
 ## Per CorpseBloomPlusPlus:
 
-* CorpseBlooms increase Healing by 100% per stack, and increase maximum healing per second by 10% per stack.
-* CorpseBlooms decrease Healing Reserves by TotalReserves(100% HP with one CorpseBloom) / Stack#.
-* CorpseBlooms Reserve HP can be increased by 100% \* Rejuvenation Rack#
+* CorpseBlooms increase maximum healing per second by 10% per stack, does NOT increase all healing by 100%.
+* CorpseBlooms decrease Healing Reserves by TotalReserves / CorpseBloom#.
+* CorpseBlooms Reserve HP can be increased by 100% \* Rejuvenation Rack#/
 * CorpseBlooms do NOT heal when player is full HP. Healing is instead stored in reserve.
 * CorpseBlooms are now affected by all health regeneration effects.
 * CorpseBlooms do not provide any regenerative effects by themselves, they only scale existing sources of healing (not actually a change, just a clarification).
 * CorpseBlooms will now load a ReserveHealthBar underneath the existing HealthBar, which displays the healing % in reserve. Works in single & multiplayer.
+
+Example: 2 Rejuvination racks provide 200% extra reserveHealth for a total of 300%. picking up 3 Corpsebloom reduced this back to 100% of Health, however the 3 Corpsebloom now apply 30% of health as healing per second, resulting in consuming the entire reserve to heal from 0->full health in 3.3seconds.
 
 All players in the server will be affected by CorpseBloomPlusPlus should they take a CorpseBloom; but only those with the mod will see the UI.
 
@@ -33,11 +37,13 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 
 ## Upcoming Features:
 
-v1.0.4 - Spectate other players HealthBar?
+v1.0.5 - Spectate other players HealthBar?
 
-v1.0.4 - Fix UI "randomly" not loading on initialization.
+v1.0.5 - Fix UI "randomly" not loading on initialization.
 
 ## Changelog:
+v1.0.4 - Added example video to readme
+
 v1.0.3 - Fixed NullRef on player death.
 
 v1.0.2 - UI HealthReserveBar implemented with net code.
