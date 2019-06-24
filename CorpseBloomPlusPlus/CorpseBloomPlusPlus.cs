@@ -68,8 +68,22 @@ namespace Paddywan
                 c.Emit(OpCodes.Mul);
                 #endregion
 
-                //decrease the total health reserve that is restored
+                
                 #region Disadvantage
+                //remove multiplicative scaling (amount*increaseHealingCount*repeatHealingCount)
+                #region healingMultiplier 
+                c.GotoNext(
+                x => x.MatchLdcI4(1),
+                x => x.MatchLdarg(0),
+                x => x.MatchLdfld<HealthComponent>("repeatHealCount"),
+                x => x.MatchAdd()
+                );
+                c.Index += 1;
+                c.RemoveRange(3);
+                #endregion
+
+                //decrease the total health reserve that is restored
+                #region modifyMaxReserve
                 c.GotoNext(
                 x => x.MatchMul(),
                 x => x.MatchLdarg(0),
@@ -108,6 +122,7 @@ namespace Paddywan
                     }
                     return fhp;
                 });
+                #endregion
                 #endregion
             };
 
@@ -273,7 +288,7 @@ namespace Paddywan
             }
             #endregion
 
-            //TestHelper.itemSpawnHelper();
+            TestHelper.itemSpawnHelper();
         }
 
         //Create UI components
