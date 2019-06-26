@@ -25,7 +25,7 @@ namespace Paddywan
     [BepInPlugin(ModGuid, ModName, ModVer)]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
-        private const string ModVer = "1.0.3";
+        private const string ModVer = "1.0.5";
         private const string ModName = "CorpseBloomPlusPlus";
         private const string ModGuid = "com.Paddywan.CorpseBloomRework";
         private float reserveMax = 0f;
@@ -80,6 +80,10 @@ namespace Paddywan
                 );
                 c.Index += 1;
                 c.RemoveRange(3);
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic));
+                //c.Index += 3;
+                //c.Remove();
+                //c.Emit(OpCodes.Div);
                 #endregion
 
                 //decrease the total health reserve that is restored
@@ -91,7 +95,13 @@ namespace Paddywan
                 );
                 c.Index += 3;
 
-                //c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
+                c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
+                c.Emit(OpCodes.Ldarg_0); //this.
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
+                c.Emit(OpCodes.Conv_R4);
+                c.Emit(OpCodes.Add);
+                c.Emit(OpCodes.Mul);
+
                 c.Emit(OpCodes.Ldarg_0); //this.
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
                 c.Emit(OpCodes.Conv_R4); //Convert top() to float.
@@ -123,6 +133,61 @@ namespace Paddywan
                     return fhp;
                 });
                 #endregion
+
+                //cut multiplicative healing, only gets applied to reserves, and not to health restored
+                #region multiplicativeHealing
+                Debug.Log(c.ToString());
+                c.Index += 3;
+                Debug.Log(c.ToString());
+                c.Emit(OpCodes.Ldarg_1);
+                c.Emit(OpCodes.Ldarg_3);
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic));
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealComponent"));
+                
+                c.EmitDelegate<Func<float, bool, int, HealthComponent,float>> ((amnt, rgn, incHealingCount, repHealComponent) =>
+                {
+                    Debug.Log("Ran delegate!");
+                    if (rgn && repHealComponent)
+                    {
+                        Debug.Log("Condition is true!");
+                        amnt /= 1f + (float)incHealingCount;
+                        return amnt;
+                    }
+                    return amnt;
+                });
+                c.Emit(OpCodes.Starg_S, (byte)1);
+
+                //Debug.Log(c.ToString());
+
+
+                //c.Emit(OpCodes.Ldarg_1); //amount
+                //c.Emit(OpCodes.Ldc_R4, 1f); //1.0
+                //c.Emit(OpCodes.Ldarg_0);
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //RejuviRack#
+                //c.Emit(OpCodes.Conv_R4);
+                //c.Emit(OpCodes.Add);  //1.0 + RejuviRack#
+                //c.Emit(OpCodes.Div); // divides amount
+                //c.Emit(OpCodes.Starg_S, (byte)1);// = amount
+
+
+
+                #endregion
+                //c.GotoNext(
+                //x => x.MatchLdarg(0),
+                //x => x.MatchLdarg(0),
+                //x => x.MatchLdfld<HealthComponent>("health"),
+                //x => x.MatchLdarg(1)
+                //);
+                //c.Index += 4;
+
+                //c.Emit(OpCodes.Ldc_R4, 1f);
+                //c.Emit(OpCodes.Ldarg_0);
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
+                //c.Emit(OpCodes.Conv_R4);
+                //c.Emit(OpCodes.Add);
+                //c.Emit(OpCodes.Div);
                 #endregion
             };
 
@@ -194,7 +259,7 @@ namespace Paddywan
             };
 
             //Add regen over time to health reserve
-            IL.RoR2.HealthComponent.FixedUpdate += (il) =>
+            IL.RoR2.HealthComponent.ServerFixedUpdate += (il) =>
             {
                 var c = new ILCursor(il);
                 //Logger.LogInfo(il.ToString());
@@ -219,7 +284,9 @@ namespace Paddywan
                 {
                     if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
-                        hc.Heal(regenAccumulator, default(ProcChainMask), true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by different conditions.
+                        ProcChainMask procChainMask = default(ProcChainMask);
+                        //procChainMask.AddProc(ProcType.RepeatHeal);
+                        hc.Heal(regenAccumulator, procChainMask, true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by different conditions.
                     }
                 });
             };
@@ -234,6 +301,8 @@ namespace Paddywan
             };
 
         }
+
+
 
         //Update reserveUI
         public void Update()
@@ -267,12 +336,18 @@ namespace Paddywan
                 {
                     if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
                     {
+                        //reserveRect.SetActive(true);
+                        //percentReserve = -0.5f + (currentReserve / reserveMax);
+                        //reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
+
+
                         if (reserveRect.activeSelf == false)
                         {
                             reserveRect.SetActive(true);
                         }
                         else
                         {
+                            //percentReserve
                             percentReserve = -0.5f + (currentReserve / reserveMax);
                             reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
@@ -288,6 +363,7 @@ namespace Paddywan
             }
             #endregion
 
+            //Debug.Log($"{currentReserve}:{reserveMax}");
             TestHelper.itemSpawnHelper();
         }
 
@@ -312,7 +388,7 @@ namespace Paddywan
             reserveBar = new GameObject();
             reserveBar.name = "ReserveBar";
             reserveBar.transform.SetParent(reserveRect.GetComponent<RectTransform>().transform);
-            reserveBar.AddComponent<RectTransform>().pivot = new Vector2(0, 0);
+            reserveBar.AddComponent<RectTransform>().pivot = new Vector2(0.5f, 1.0f);
             reserveBar.GetComponent<RectTransform>().sizeDelta = reserveRect.GetComponent<RectTransform>().sizeDelta;
             reserveBar.AddComponent<Image>().color = new Color(1, 0.33f, 0, 1);
             #endregion

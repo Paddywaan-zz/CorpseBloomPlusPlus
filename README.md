@@ -37,11 +37,13 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 
 ## Upcoming Features:
 
-v1.0.5 - Spectate other players HealthBar?
+v1.0.6 - Spectate other players HealthBar?
 
-v1.0.5 - Fix UI "randomly" not loading on initialization.
+v1.0.6 - Fix UI "randomly" not loading on initialization.
 
 ## Changelog:
+v1.0.5 - Fixed balance issue with multiplicative heal scaling: removed corpseblooms "increase healing by 100%".
+
 v1.0.4 - Added example video to readme
 
 v1.0.3 - Fixed NullRef on player death.
