@@ -42,7 +42,12 @@ v1.0.6 - Spectate other players HealthBar?
 v1.0.6 - Fix UI "randomly" not loading on initialization.
 
 ## Changelog:
-v1.0.5 - Fixed balance issue with multiplicative heal scaling: removed corpseblooms "increase healing by 100%".
+v1.0.5 
+* Fixed balance issue with multiplicative heal scaling: removed corpseblooms "increase healing by 100%".
+* Fixed issue with reserveHealth not incrementing upon rejuvinationRack pickup.
+* Fixed issue with double double healing (yes you read that right. Racks double healing when added to reserve, and then double when consumed from reserve to heal Health.).
+* Fixed scaling with large quantities of racks and blooms.
+* Fixed various broken hooks & ensured compatability with Scorched Acres update.
 
 v1.0.4 - Added example video to readme
 

@@ -62,13 +62,13 @@ namespace Paddywan
                 c.GotoNext(
                     x => x.MatchLdfld<HealthComponent>("repeatHealComponent"),
                     x => x.MatchLdcR4(0.1f)
-                    );
+                    ); //match: this.repeatHealComponent.healthFractionToRestorePerSecond = 0.1f / (float)this.repeatHealCount; line 197
+                //Becomes this.repeatHealComponent.healthFractionToRestorePerSecond = 0.1f * (float)this.repeatHealCount;
                 c.Index += 5;
                 c.Remove();
                 c.Emit(OpCodes.Mul);
                 #endregion
 
-                
                 #region Disadvantage
                 //remove multiplicative scaling (amount*increaseHealingCount*repeatHealingCount)
                 #region healingMultiplier 
@@ -77,13 +77,10 @@ namespace Paddywan
                 x => x.MatchLdarg(0),
                 x => x.MatchLdfld<HealthComponent>("repeatHealCount"),
                 x => x.MatchAdd()
-                );
+                ); //match this.repeatHealComponent.AddReserve(amount * (float)(1 + this.repeatHealCount), this.fullHealth); line 198
+                //Replace with this.repeatHealComponent.AddReserve(amount * (float)(1), this.fullHealth);
                 c.Index += 1;
                 c.RemoveRange(3);
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic));
-                //c.Index += 3;
-                //c.Remove();
-                //c.Emit(OpCodes.Div);
                 #endregion
 
                 //decrease the total health reserve that is restored
@@ -92,7 +89,8 @@ namespace Paddywan
                 x => x.MatchMul(),
                 x => x.MatchLdarg(0),
                 x => x.MatchCallvirt<HealthComponent>("get_fullHealth")
-                );
+                ); //Match this.repeatHealComponent.AddReserve(amount * (float)(1), this.fullHealth); line 198
+                //Replace with this.repeatHealComponent.AddReserve(amount * (float)(1), (this.fullHealth * 1.0f + (float)this.increaseHealingCount) / this.repeatHealCount);
                 c.Index += 3;
 
                 c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
@@ -108,16 +106,17 @@ namespace Paddywan
                 c.Emit(OpCodes.Div); // (fullHealth * increaseHealingCount) / repeatHealCount
                 c.Emit(OpCodes.Ldarg_0);
 
-                //Update each CorpseBloom owner's FullHealthReserve value
+                //Update each CorpseBloom owner's FullHealthReserve value and store in corpseReserve
                 c.EmitDelegate<Func<float, HealthComponent, float>>((fhp, hc) =>
                 {
                     if (hc.body != null)
                     {
                         if (LocalUserManager.GetFirstLocalUser().cachedBody != null) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
                         {
-                            if (hc.body.Equals(LocalUserManager.GetFirstLocalUser().cachedBody)) 
+                            if (hc.body.Equals(LocalUserManager.GetFirstLocalUser().cachedBody))
                             {
                                 reserveMax = fhp;
+                                //Debug.Log("Updated reserveHP");
                             }
                         }
                         if (playerReserves.ContainsKey(hc.body.netId))
@@ -136,31 +135,36 @@ namespace Paddywan
 
                 //cut multiplicative healing, only gets applied to reserves, and not to health restored
                 #region multiplicativeHealing
-                Debug.Log(c.ToString());
-                c.Index += 3;
-                Debug.Log(c.ToString());
+                //Debug.Log(c.ToString());
+                c.GotoNext(
+                    x => x.MatchRet(),
+                    x => x.MatchLdarg(1)
+                    );
+                c.Index += 2;
+                //Debug.Log(c.ToString());
                 c.Emit(OpCodes.Ldarg_1);
                 c.Emit(OpCodes.Ldarg_3);
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic));
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealComponent"));
-                
-                c.EmitDelegate<Func<float, bool, int, HealthComponent,float>> ((amnt, rgn, incHealingCount, repHealComponent) =>
+
+                c.EmitDelegate<Func<float, bool, int, HealthComponent, float>> ((amnt, rgn, incHealingCount, repHealComponent) =>
                 {
-                    Debug.Log("Ran delegate!");
+                   //Debug.Log("Ran delegate!");
                     if (rgn && repHealComponent)
                     {
-                        Debug.Log("Condition is true!");
+                        //Debug.Log("Condition is true!");
                         amnt /= 1f + (float)incHealingCount;
                         return amnt;
                     }
                     return amnt;
                 });
                 c.Emit(OpCodes.Starg_S, (byte)1);
+                #endregion
 
+                #region ShitDidntWork
                 //Debug.Log(c.ToString());
-
 
                 //c.Emit(OpCodes.Ldarg_1); //amount
                 //c.Emit(OpCodes.Ldc_R4, 1f); //1.0
@@ -171,9 +175,6 @@ namespace Paddywan
                 //c.Emit(OpCodes.Div); // divides amount
                 //c.Emit(OpCodes.Starg_S, (byte)1);// = amount
 
-
-
-                #endregion
                 //c.GotoNext(
                 //x => x.MatchLdarg(0),
                 //x => x.MatchLdarg(0),
@@ -189,6 +190,8 @@ namespace Paddywan
                 //c.Emit(OpCodes.Add);
                 //c.Emit(OpCodes.Div);
                 #endregion
+
+                #endregion
             };
 
             //Build reserve while fullHP, do not consume. Update currentReserve
@@ -198,12 +201,12 @@ namespace Paddywan
                 ILLabel lab = il.DefineLabel();
 
                 #region updateCurrentReserveHP
-                c.GotoNext( //match the timer and loading of 0f onto the stack. Insert before.
+                c.GotoNext( 
                     x => x.MatchLdarg(0),
                     x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "timer"),
                     x => x.MatchLdcR4(0f)
-                    );
-
+                    ); //match if (this.timer <= 0f) line 1226
+                //push reserve & HealthComponent onto stack & emitDelegate
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("reserve")); //Load reserve onto the stack.
                 c.Emit(OpCodes.Ldarg_0);
@@ -238,9 +241,10 @@ namespace Paddywan
                     x => x.MatchLdarg(0),
                     x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "timer"),
                     x => x.MatchLdcR4(0f)
-                    );
-                c.Index += 4;
+                    ); //Match if (this.timer <= 0f) line 1228
+                //add condition if(healthComponent.health < healthComponent.get_FullHealth) {
 
+                c.Index += 4;
                 c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health")); //load healthComponent.health onto the stack.
@@ -270,11 +274,9 @@ namespace Paddywan
                     x => x.MatchLdloc(0),
                     x => x.MatchSub(),
                     x => x.MatchStfld<HealthComponent>("regenAccumulator")
-                );
+                ); //Match this.regenAccumulator -= num; line 802
+                //emitDelgate
                 c.Index += 4; //NextLine
-
-                //c.RemoveRange(8); //We don't remove the range(hc.Heal(regenAccumulator, default(ProcChainMask), false);) because this is only applied to default health regen effects, not repeatheal.
-
                 c.Emit(OpCodes.Ldarg_0);//push (this) to pass to the Delegate
                 c.Emit(OpCodes.Ldarg_0);//Push (this) to pass to getFieldCached
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("regenAccumulator")); //push regenAccumulator to the stack
@@ -301,8 +303,6 @@ namespace Paddywan
             };
 
         }
-
-
 
         //Update reserveUI
         public void Update()
@@ -336,18 +336,12 @@ namespace Paddywan
                 {
                     if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
                     {
-                        //reserveRect.SetActive(true);
-                        //percentReserve = -0.5f + (currentReserve / reserveMax);
-                        //reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
-
-
                         if (reserveRect.activeSelf == false)
                         {
                             reserveRect.SetActive(true);
                         }
                         else
                         {
-                            //percentReserve
                             percentReserve = -0.5f + (currentReserve / reserveMax);
                             reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
