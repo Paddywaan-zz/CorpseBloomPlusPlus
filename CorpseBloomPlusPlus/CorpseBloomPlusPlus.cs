@@ -336,9 +336,13 @@ namespace Paddywan
                         if (reserveRect.activeSelf == false)
                         {
                             reserveRect.SetActive(true);
-                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
+                            //reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
-                        percentReserve = -0.5f + (currentReserve / reserveMax);
+                        else
+                        {
+                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
+                            percentReserve = -0.5f + (currentReserve / reserveMax);
+                        }
                     }
                     else
                     {
@@ -351,7 +355,7 @@ namespace Paddywan
             }
             #endregion
 
-            //TestHelper.itemSpawnHelper();
+            TestHelper.itemSpawnHelper();
         }
 
         //Create UI components
