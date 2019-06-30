@@ -17,13 +17,13 @@ Healing is "stored", so if the user is healed to maximum life, and then take dam
 
 ## Per CorpseBloomPlusPlus:
 
-* CorpseBlooms increase maximum healing per second by 10% per stack, does NOT increase all healing by 100%.
-* CorpseBlooms decrease Healing Reserves by TotalReserves / CorpseBloom#.
-* CorpseBlooms Reserve HP can be increased by 100% \* Rejuvenation Rack#/
+* CorpseBlooms privide 100% of Health as a reserve, and can be increased by 100% per Rejuvination rack. 
+* CorpseBlooms consume from reserve at a rate of 10% of maxHealth/s per CorpseBloom, can only restore health from stored reserves, does NOT increase all healing by 100%.
+* CorpseBlooms decrease Healing Reserves by TotalReserves / CorpseBlooms.
 * CorpseBlooms do NOT heal when player is full HP. Healing is instead stored in reserve.
-* CorpseBlooms are now affected by all health regeneration effects.
-* CorpseBlooms do not provide any regenerative effects by themselves, they only scale existing sources of healing (not actually a change, just a clarification).
+* CorpseBlooms are now affected by all health regeneration effects (passive+active).
 * CorpseBlooms will now load a ReserveHealthBar underneath the existing HealthBar, which displays the healing % in reserve. Works in single & multiplayer.
+* CorpseBlooms do not provide any regenerative effects by themselves, they only scale existing sources of healing (not actually a change, just a clarification).
 
 Example: 2 Rejuvination racks provide 200% extra reserveHealth for a total of 300%. picking up 3 Corpsebloom reduced this back to 100% of Health, however the 3 Corpsebloom now apply 30% of health as healing per second, resulting in consuming the entire reserve to heal from 0->full health in 3.3seconds.
 
@@ -39,15 +39,14 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 
 v1.0.6 - Spectate other players HealthBar?
 
-v1.0.6 - Fix UI "randomly" not loading on initialization.
-
 ## Changelog:
 v1.0.5 
 * Fixed balance issue with multiplicative heal scaling: removed corpseblooms "increase healing by 100%".
 * Fixed issue with reserveHealth not incrementing upon rejuvinationRack pickup.
-* Fixed issue with double double healing (yes you read that right. Racks double healing when added to reserve, and then double when consumed from reserve to heal Health.).
+* Fixed issue with double double healing (yes you read that right. Racks double healing when added to reserve, and then double when consumed from reserve to heal).
 * Fixed scaling with large quantities of racks and blooms.
 * Fixed various broken hooks & ensured compatability with Scorched Acres update.
+* Fixed UI "randomly" not loading on initialization.
 
 v1.0.4 - Added example video to readme
 

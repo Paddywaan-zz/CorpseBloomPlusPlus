@@ -8,7 +8,6 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
-using BepInEx.Logging;
 using RoR2.UI;
 using MiniRpcLib;
 using MiniRpcLib.Action;
@@ -22,24 +21,27 @@ namespace Paddywan
     /// </summary>
     [BepInDependency("com.bepis.r2api")]
     [BepInDependency(MiniRpcPlugin.Dependency)]
-    [BepInPlugin(ModGuid, ModName, ModVer)]
+    [BepInPlugin(modGuid, modName, modVer)]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
-        private const string ModVer = "1.0.5";
-        private const string ModName = "CorpseBloomPlusPlus";
-        private const string ModGuid = "com.Paddywan.CorpseBloomRework";
+        private const string modVer = "1.0.5";
+        private const string modName = "CorpseBloomPlusPlus";
+        private const string modGuid = "com.Paddywan.CorpseBloomRework";
         private float reserveMax = 0f;
         private float currentReserve = 0f;
-        GameObject reserveRect = new GameObject();
-        GameObject reserveBar = new GameObject();
-        float percentReserve = 0f;
-        HealthBar hpBar;
-        Dictionary<NetworkInstanceId, CorpseReserve> playerReserves = new Dictionary<NetworkInstanceId, CorpseReserve>();
+        private float percentReserve = 0f;
+        private GameObject reserveRect = new GameObject();
+        private GameObject reserveBar = new GameObject();
+        private HealthBar hpBar;
+        private Dictionary<NetworkInstanceId, CorpseReserve> playerReserves = new Dictionary<NetworkInstanceId, CorpseReserve>();
+        private Dictionary<NetworkInstanceId, bool> clientHasCorpseMod = new Dictionary<NetworkInstanceId, bool>();
+        private Dictionary<NetworkInstanceId, bool> clientIsPinged = new Dictionary<NetworkInstanceId, bool>();
         public IRpcAction<CorpseReserve> updateReserveCommand { get; set; }
+        public IRpcFunc<bool, bool> clientPingCheck { get; set; }
 
         public CorpseBloomPlusPlus()
         {
-            var miniRpc = MiniRpc.CreateInstance(ModGuid);
+            var miniRpc = MiniRpc.CreateInstance(modGuid);
             updateReserveCommand = miniRpc.RegisterAction(Target.Client, (NetworkUser user, CorpseReserve cr) =>
             {
                 if (cr != null)
@@ -49,6 +51,14 @@ namespace Paddywan
                     //Debug.Log($"CR: {currentReserve}; MR: {reserveMax};");
                 }
             });
+
+            //This is to fix severe desync when a modded server communicates with a vanilla client. Ping the client and check for response before we send updates.
+            clientPingCheck = miniRpc.RegisterFunc<bool, bool>(Target.Client, (user, x) =>
+            {
+                Debug.Log($"[Client] HOST sent us: {x}, returning true");
+                return true;
+                //return $"Hello from the server, received {x}!";
+            });
         }
 
         public void Awake()
@@ -56,7 +66,7 @@ namespace Paddywan
             //Scale the stacks of corpseblooms to provide % HP / s increase per stack, and -%Reserve per stack
             IL.RoR2.HealthComponent.Heal += (il) =>
             {
-                //Increase the amount of health that can be accumulated per second
+                //Increase the amount of reserve consumed to heal per second
                 #region Benefit
                 var c = new ILCursor(il);
                 c.GotoNext(
@@ -70,6 +80,7 @@ namespace Paddywan
                 #endregion
 
                 #region Disadvantage
+
                 //remove multiplicative scaling (amount*increaseHealingCount*repeatHealingCount)
                 #region healingMultiplier 
                 c.GotoNext(
@@ -93,17 +104,17 @@ namespace Paddywan
                 //Replace with this.repeatHealComponent.AddReserve(amount * (float)(1), (this.fullHealth * 1.0f + (float)this.increaseHealingCount) / this.repeatHealCount);
                 c.Index += 3;
 
-                c.Emit(OpCodes.Ldc_R4, 1f); //push 1.0f to stack.
-                c.Emit(OpCodes.Ldarg_0); //this.
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
+                c.Emit(OpCodes.Ldc_R4, 1f); 
+                c.Emit(OpCodes.Ldarg_0); 
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); 
                 c.Emit(OpCodes.Conv_R4);
                 c.Emit(OpCodes.Add);
                 c.Emit(OpCodes.Mul);
 
-                c.Emit(OpCodes.Ldarg_0); //this.
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
-                c.Emit(OpCodes.Conv_R4); //Convert top() to float.
-                c.Emit(OpCodes.Div); // (fullHealth * increaseHealingCount) / repeatHealCount
+                c.Emit(OpCodes.Ldarg_0); 
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("repeatHealCount", BindingFlags.Instance | BindingFlags.NonPublic)); 
+                c.Emit(OpCodes.Conv_R4); 
+                c.Emit(OpCodes.Div); 
                 c.Emit(OpCodes.Ldarg_0);
 
                 //Update each CorpseBloom owner's FullHealthReserve value and store in corpseReserve
@@ -111,12 +122,11 @@ namespace Paddywan
                 {
                     if (hc.body != null)
                     {
-                        if (LocalUserManager.GetFirstLocalUser().cachedBody != null) //check if the HealthComponent instance belongs to the local user (host) - clients do not execute Heal
+                        if (LocalUserManager.GetFirstLocalUser().cachedBody != null)
                         {
                             if (hc.body.Equals(LocalUserManager.GetFirstLocalUser().cachedBody))
                             {
                                 reserveMax = fhp;
-                                //Debug.Log("Updated reserveHP");
                             }
                         }
                         if (playerReserves.ContainsKey(hc.body.netId))
@@ -135,7 +145,7 @@ namespace Paddywan
 
                 //cut multiplicative healing, only gets applied to reserves, and not to health restored
                 #region multiplicativeHealing
-                //Debug.Log(c.ToString());
+
                 c.GotoNext(
                     x => x.MatchRet(),
                     x => x.MatchLdarg(1)
@@ -145,52 +155,21 @@ namespace Paddywan
                 c.Emit(OpCodes.Ldarg_1);
                 c.Emit(OpCodes.Ldarg_3);
                 c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic));
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); 
                 c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealComponent"));
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("repeatHealComponent")); //I'm not sure why, but we can properly existance check the private subtype RepeatHealComponent when its cast as a HealthComponent
 
                 c.EmitDelegate<Func<float, bool, int, HealthComponent, float>> ((amnt, rgn, incHealingCount, repHealComponent) =>
                 {
-                   //Debug.Log("Ran delegate!");
-                    if (rgn && repHealComponent)
+                    if (rgn && repHealComponent) //If nonRegen flag is set, and the client has a repeatHealComponent, and the procChain has type.RepeatHeal (ommited due to code prior to delegate returning if has procType.)
                     {
-                        //Debug.Log("Condition is true!");
                         amnt /= 1f + (float)incHealingCount;
-                        return amnt;
+                        return amnt; //return the modified amount.
                     }
-                    return amnt;
+                    return amnt; //otherwise we do nothing here.
                 });
                 c.Emit(OpCodes.Starg_S, (byte)1);
                 #endregion
-
-                #region ShitDidntWork
-                //Debug.Log(c.ToString());
-
-                //c.Emit(OpCodes.Ldarg_1); //amount
-                //c.Emit(OpCodes.Ldc_R4, 1f); //1.0
-                //c.Emit(OpCodes.Ldarg_0);
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //RejuviRack#
-                //c.Emit(OpCodes.Conv_R4);
-                //c.Emit(OpCodes.Add);  //1.0 + RejuviRack#
-                //c.Emit(OpCodes.Div); // divides amount
-                //c.Emit(OpCodes.Starg_S, (byte)1);// = amount
-
-                //c.GotoNext(
-                //x => x.MatchLdarg(0),
-                //x => x.MatchLdarg(0),
-                //x => x.MatchLdfld<HealthComponent>("health"),
-                //x => x.MatchLdarg(1)
-                //);
-                //c.Index += 4;
-
-                //c.Emit(OpCodes.Ldc_R4, 1f);
-                //c.Emit(OpCodes.Ldarg_0);
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetField("increaseHealingCount", BindingFlags.Instance | BindingFlags.NonPublic)); //this.repeatHealCount pushed to stack.
-                //c.Emit(OpCodes.Conv_R4);
-                //c.Emit(OpCodes.Add);
-                //c.Emit(OpCodes.Div);
-                #endregion
-
                 #endregion
             };
 
@@ -208,7 +187,7 @@ namespace Paddywan
                     ); //match if (this.timer <= 0f) line 1226
                 //push reserve & HealthComponent onto stack & emitDelegate
                 c.Emit(OpCodes.Ldarg_0);
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("reserve")); //Load reserve onto the stack.
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("reserve")); 
                 c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
                 
@@ -219,9 +198,9 @@ namespace Paddywan
                     {
                         if (LocalUserManager.GetFirstLocalUser().cachedBody != null)
                         {
-                            if (LocalUserManager.GetFirstLocalUser().cachedBody.Equals(hc.body)) //check if the HealthComponent instance belongs to the local user (host - clients do not execute fixed update)
+                            if (LocalUserManager.GetFirstLocalUser().cachedBody.Equals(hc.body))
                             {
-                                currentReserve = curHP; //Update currentHP value
+                                currentReserve = curHP; 
                             }
                         }
                         if (playerReserves.ContainsKey(hc.body.netId))
@@ -236,7 +215,7 @@ namespace Paddywan
                 });
                 #endregion
 
-                #region BuildReserves
+                #region DontConsume
                 c.GotoNext( //match the timer and loading of 0f onto the stack, increment 4 instuctions to palce ourselves here: if(this.timer > 0f<here>)
                     x => x.MatchLdarg(0),
                     x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "timer"),
@@ -245,13 +224,13 @@ namespace Paddywan
                 //add condition if(healthComponent.health < healthComponent.get_FullHealth) {
 
                 c.Index += 4;
-                c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health")); //load healthComponent.health onto the stack.
+                c.Emit(OpCodes.Ldarg_0); 
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); 
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health")); 
 
                 c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); //Load HealthComponent RepeatHealComponent.healthComponent onto the stack
-                c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth")); //load healthComponent.fullHealth onto the stack.
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
+                c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth")); 
                 c.Emit(OpCodes.Bge_Un_S, lab); //branch to return if health > fullhealth
 
                 //Mark return address
@@ -287,7 +266,6 @@ namespace Paddywan
                     if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
                         ProcChainMask procChainMask = default(ProcChainMask);
-                        //procChainMask.AddProc(ProcType.RepeatHeal);
                         hc.Heal(regenAccumulator, procChainMask, true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by different conditions.
                     }
                 });
@@ -301,10 +279,9 @@ namespace Paddywan
                 reserveRect.transform.SetParent(orig.healthBar.transform, false);
                 hpBar = orig.healthBar;
             };
-
         }
 
-        //Update reserveUI
+        //Update reserveUI & distribute CorpseReserve's to network players
         public void Update()
         {
             //Send CorpseReserves to all CorpseBloom owners
@@ -313,14 +290,34 @@ namespace Paddywan
             {
                 foreach (NetworkUser nu in NetworkUser.readOnlyInstancesList)
                 {
-                    if (nu.GetCurrentBody() != null)
+                    if (nu.GetCurrentBody() != null && nu.GetCurrentBody().healthComponent.alive)
                     {
-                        if (nu.GetCurrentBody().healthComponent.alive)
+                        if (playerReserves.ContainsKey(nu.GetCurrentBody().netId)) //client has CorpseBloom?
                         {
-                            if (playerReserves.ContainsKey(nu.GetCurrentBody().netId))
+                            if (clientHasCorpseMod.ContainsKey(nu.GetCurrentBody().netId) && clientHasCorpseMod[nu.GetCurrentBody().netId]) 
                             {
-                                updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu);
-                                //Debug.Log($"sent player[{nu.GetCurrentBody().netId}] reserve: [{playerReserves[nu.GetCurrentBody().netId].currentReserve},{playerReserves[nu.GetCurrentBody().netId].maxReserve}]");
+                                updateReserveCommand.Invoke(playerReserves[nu.GetCurrentBody().netId], nu); //update client
+                            }
+                            else //client has not been pinged
+                            {
+                                if (!clientIsPinged.ContainsKey(nu.GetCurrentBody().netId))
+                                {
+                                    Debug.Log("[HOST]Sending PingCheck");
+                                    clientIsPinged.Add(nu.GetCurrentBody().netId, true); //ping client
+                                    clientPingCheck.Invoke(false, result =>
+                                    {
+                                        if(result)
+                                        {
+                                            clientHasCorpseMod.Add(nu.GetCurrentBody().netId, true); //client is modded
+                                            Debug.Log($"[HOST] Received response: {result}, player has mod.");
+                                        }
+                                        else
+                                        {
+                                            Debug.Log($"[HOST] Received response: {result}, player is not modded.");
+                                            clientHasCorpseMod.Add(nu.GetCurrentBody().netId, false); //client is vanilla
+                                        }
+                                    }, nu);
+                                }
                             }
                         }
                     }
@@ -339,12 +336,9 @@ namespace Paddywan
                         if (reserveRect.activeSelf == false)
                         {
                             reserveRect.SetActive(true);
-                        }
-                        else
-                        {
-                            percentReserve = -0.5f + (currentReserve / reserveMax);
                             reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
+                        percentReserve = -0.5f + (currentReserve / reserveMax);
                     }
                     else
                     {
@@ -357,8 +351,7 @@ namespace Paddywan
             }
             #endregion
 
-            //Debug.Log($"{currentReserve}:{reserveMax}");
-            TestHelper.itemSpawnHelper();
+            //TestHelper.itemSpawnHelper();
         }
 
         //Create UI components
