@@ -27,8 +27,8 @@ namespace Paddywan
         private const string modVer = "1.0.5";
         private const string modName = "CorpseBloomPlusPlus";
         private const string modGuid = "com.Paddywan.CorpseBloomRework";
-        private float reserveMax = 0f;
-        private float currentReserve = 0f;
+        private float reserveMax = 110f;
+        private float currentReserve = 100f;
         private float percentReserve = 0f;
         private GameObject reserveRect = new GameObject();
         private GameObject reserveBar = new GameObject();
@@ -309,11 +309,11 @@ namespace Paddywan
                                         if(result)
                                         {
                                             clientHasCorpseMod.Add(nu.GetCurrentBody().netId, true); //client is modded
-                                            Debug.Log($"[HOST] Received response: {result}, player has mod.");
+                                            Debug.Log($"[HOST] Received response from {nu.GetCurrentBody().netId}: {result}, player has mod.");
                                         }
                                         else
                                         {
-                                            Debug.Log($"[HOST] Received response: {result}, player is not modded.");
+                                            Debug.Log($"[HOST] Received response from {nu.GetCurrentBody().netId}: {result}, player is not modded.");
                                             clientHasCorpseMod.Add(nu.GetCurrentBody().netId, false); //client is vanilla
                                         }
                                     }, nu);
@@ -336,12 +336,13 @@ namespace Paddywan
                         if (reserveRect.activeSelf == false)
                         {
                             reserveRect.SetActive(true);
-                            //reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
+                            percentReserve = -0.5f + (currentReserve / reserveMax);
+                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
                         else
                         {
-                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                             percentReserve = -0.5f + (currentReserve / reserveMax);
+                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
                     }
                     else
