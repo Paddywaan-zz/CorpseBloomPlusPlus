@@ -256,6 +256,7 @@ namespace Paddywan
                 ); //Match this.regenAccumulator -= num; line 802
                 //emitDelgate
                 c.Index += 4; //NextLine
+                c.RemoveRange(8);
                 c.Emit(OpCodes.Ldarg_0);//push (this) to pass to the Delegate
                 c.Emit(OpCodes.Ldarg_0);//Push (this) to pass to getFieldCached
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("regenAccumulator")); //push regenAccumulator to the stack
@@ -263,10 +264,14 @@ namespace Paddywan
                 //pass this & regenAccumulor to delegate
                 c.EmitDelegate<Action<HealthComponent, float>>((hc, regenAccumulator) =>
                 {
+                    ProcChainMask procChainMask = default(ProcChainMask);
                     if (hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
-                        ProcChainMask procChainMask = default(ProcChainMask);
-                        hc.Heal(regenAccumulator, procChainMask, true); //Add regen to reserve. duplicating this does not matter since they are different heal types cought by different conditions.
+                        hc.Heal(regenAccumulator, procChainMask, true); //Add regen to reserve. 
+                    }
+                    else
+                    {
+                        hc.Heal(regenAccumulator, procChainMask, false); //Add regen to health
                     }
                 });
             };
@@ -356,7 +361,7 @@ namespace Paddywan
             }
             #endregion
 
-            TestHelper.itemSpawnHelper();
+            //TestHelper.itemSpawnHelper();
         }
 
         //Create UI components
