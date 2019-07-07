@@ -28,7 +28,7 @@ namespace Paddywan
         private const string modName = "CorpseBloomPlusPlus";
         private const string modGuid = "com.Paddywan.CorpseBloomRework";
         private float reserveMax = 110f;
-        private float currentReserve = 100f;
+        private float currentReserve = 110f;
         private float percentReserve = 0f;
         private GameObject reserveRect = new GameObject();
         private GameObject reserveBar = new GameObject();
