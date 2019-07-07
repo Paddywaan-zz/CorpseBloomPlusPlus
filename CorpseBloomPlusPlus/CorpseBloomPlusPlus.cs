@@ -254,23 +254,15 @@ namespace Paddywan
                     x => x.MatchSub(),
                     x => x.MatchStfld<HealthComponent>("regenAccumulator")
                 ); //Match this.regenAccumulator -= num; line 802
+
                 //emitDelgate
                 c.Index += 4; //NextLine
-                //Debug.Log(c);
                 c.RemoveRange(8);
-                //Debug.Log(c);
-                //Debug.Log(c);
-                c.Emit(OpCodes.Ldarg_0);//push (this) to pass to the Delegate
-                //c.Emit(OpCodes.Ldarg_0);//Push (this) to pass to getFieldCached
-                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("regenAccumulator")); //push regenAccumulator to the stack
+                c.Emit(OpCodes.Ldarg_0);
                 c.Emit(OpCodes.Ldloc_0);
-                //Debug.Log(c);
-                //pass this & regenAccumulor to delegate
                 c.EmitDelegate<Action<HealthComponent, float>>((hc, num) =>
                 {
                     ProcChainMask procChainMask = default(ProcChainMask);
-                    //hc.Heal(num, default(ProcChainMask), false);
-                    //Debug.Log(hc.body.name);
                     if (hc.body.inventory && hc.body.inventory.GetItemCount(ItemIndex.RepeatHeal) > 0) //Check if we have a CorpseBloom
                     {
                         hc.Heal(num, procChainMask, true); //Add regen to reserve. 
@@ -280,7 +272,6 @@ namespace Paddywan
                         hc.Heal(num, procChainMask, false); //Add regen to health
                     }
                 });
-                Debug.Log(il);
             };
 
             //Add reserveUI to HealthBar
