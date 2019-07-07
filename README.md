@@ -1,9 +1,9 @@
 # CorpseBloomPlusPlus
-CorpseBloomPlusPlus modifies the functionality of the Corpse bloom in some key areas in order to make the item much more effective, rewarding, situational, while still maintaining scaling balance.
+CorpseBloomPlusPlus modifies the functionality of the Corpsebloom in some key areas in order to make the item much more effective, rewarding, and situational while still maintaining scaling balance.
 The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits which other items do not possess.
 I hope that this change will be well received as it targets some core parts of gameplay & items which have been long overlooked by many in the community due to superior options elsewhere; however this mechanic should now provide a uniquely beneficial component to regenerative healing effects.
 
-\*NEW\* CorpseBloomPlusPlus now has a Reserve HealthBar!
+\*NEW\* CorpseBloomPlusPlus now has a Reserve HealthBar! Compatable with SchoredAcre's update!
 
 https://streamable.com/2bd7t
 
@@ -59,7 +59,6 @@ v1.0.1 - Released.
 ## Issues:
 
 Cannot view other players reserve bar while dead/spectating.
-When HealthBar is initialized for the first time, sometimes does not display. Progress to next map for fix.
 
 ## Credits:
 
