@@ -40,6 +40,9 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 v1.0.6 - Spectate other players HealthBar?
 
 ## Changelog:
+
+v1.0.7 - FINALLY fixed UI initialization issue. Fixed ordering of activation vs resizing of healthbar, should consistently work on both host & client.
+
 v1.0.6 - Resolved issue which prevented regenerative healing without corpsebloom, and resolved incorrect regen issue.
 
 v1.0.5 - 

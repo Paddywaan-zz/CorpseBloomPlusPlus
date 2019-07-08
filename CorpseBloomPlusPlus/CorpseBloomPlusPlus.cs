@@ -24,7 +24,7 @@ namespace Paddywan
     [BepInPlugin(modGuid, modName, modVer)]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
-        private const string modVer = "1.0.6";
+        private const string modVer = "1.0.7";
         private const string modName = "CorpseBloomPlusPlus";
         private const string modGuid = "com.Paddywan.CorpseBloomRework";
         private float reserveMax = 0f;
