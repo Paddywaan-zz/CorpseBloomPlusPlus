@@ -27,9 +27,9 @@ namespace Paddywan
         private const string modVer = "1.0.6";
         private const string modName = "CorpseBloomPlusPlus";
         private const string modGuid = "com.Paddywan.CorpseBloomRework";
-        private float reserveMax = 110f;
-        private float currentReserve = 110f;
-        private float percentReserve = 1.0f;
+        private float reserveMax = 0f;
+        private float currentReserve = 0f;
+        private float percentReserve = 0.0f;
         private GameObject reserveRect = new GameObject();
         private GameObject reserveBar = new GameObject();
         private HealthBar hpBar;
@@ -336,16 +336,11 @@ namespace Paddywan
                 {
                     if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
                     {
+                        percentReserve = -0.5f + (currentReserve / reserveMax);
+                        reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         if (reserveRect.activeSelf == false)
                         {
                             reserveRect.SetActive(true);
-                            percentReserve = -0.5f + (currentReserve / reserveMax);
-                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
-                        }
-                        else
-                        {
-                            percentReserve = -0.5f + (currentReserve / reserveMax);
-                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
                         }
                     }
                     else
@@ -358,11 +353,6 @@ namespace Paddywan
                 }
             }
             #endregion
-
-            //TestHelper.itemSpawnHelper();
-            //TestHelper.spawnItem(KeyCode.F9, ItemIndex.RepeatHeal);
-            //TestHelper.spawnItem(KeyCode.F10, ItemIndex.HealWhileSafe);
-            //TestHelper.spawnItem(KeyCode.F11, ItemIndex.IncreaseHealing);
         }
 
         //Create UI components
