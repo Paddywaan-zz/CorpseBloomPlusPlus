@@ -3,7 +3,7 @@ CorpseBloomPlusPlus modifies the functionality of the Corpsebloom in some key ar
 The end result is an item that benefits those who do not have sustained leech capabilities, making combinations of rarely sought items useful once again, as well as having some key benefits which other items do not possess.
 I hope that this change will be well received as it targets some core parts of gameplay & items which have been long overlooked by many in the community due to superior options elsewhere; however this mechanic should now provide a uniquely beneficial component to regenerative healing effects.
 
-\*NEW\* CorpseBloomPlusPlus now has a Reserve HealthBar! Compatable with SchoredAcre's update!
+\*NEW\* CorpseBloomPlusPlus now prevents reserve consumption while afflicted by malachite poison.
 
 https://streamable.com/2bd7t
 
@@ -40,6 +40,8 @@ Place inside of Risk of Rain 2/Bepinex/Plugins/
 v1.0.6 - Spectate other players HealthBar?
 
 ## Changelog:
+
+v1.0.8 - Prevent reserve consumption while afflicted by malachite poison.
 
 v1.0.7 - FINALLY fixed UI initialization issue. Fixed ordering of activation vs resizing of healthbar, should consistently work on both host & client.
 

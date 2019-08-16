@@ -24,12 +24,12 @@ namespace Paddywan
     [BepInPlugin(modGuid, modName, modVer)]
     public class CorpseBloomPlusPlus : BaseUnityPlugin
     {
-        private const string modVer = "1.0.7";
+        private const string modVer = "1.0.8";
         private const string modName = "CorpseBloomPlusPlus";
         private const string modGuid = "com.Paddywan.CorpseBloomRework";
-        private float reserveMax = 0f;
-        private float currentReserve = 0f;
-        private float percentReserve = 0.0f;
+        private float reserveMax = 110f;
+        private float currentReserve = 110f;
+        private float percentReserve = 1f;
         private GameObject reserveRect = new GameObject();
         private GameObject reserveBar = new GameObject();
         private HealthBar hpBar;
@@ -218,22 +218,44 @@ namespace Paddywan
                 #region DontConsume
                 c.GotoNext( //match the timer and loading of 0f onto the stack, increment 4 instuctions to palce ourselves here: if(this.timer > 0f<here>)
                     x => x.MatchLdarg(0),
-                    x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "timer"),
+                    x => x.MatchLdfld("RoR2.HealthComponent/RepeatHealComponent", "reserve"),
                     x => x.MatchLdcR4(0f)
                     ); //Match if (this.timer <= 0f) line 1228
                 //add condition if(healthComponent.health < healthComponent.get_FullHealth) {
 
-                c.Index += 4;
+                //Old non-malechite logic
+                //c.Index += 4;
+                //c.Emit(OpCodes.Ldarg_0); 
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); 
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health")); 
+
+                //c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
+                //c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
+                //c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth")); 
+                //c.Emit(OpCodes.Bge_Un_S, lab); //branch to return if health > fullhealth
+
+                //Remove unwanted instructions and setup the stack for our delegate.
+                c.Index += 2;
+                c.RemoveRange(2);
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
+
                 c.Emit(OpCodes.Ldarg_0); 
                 c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent")); 
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health")); 
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetFieldCached("health"));
 
                 c.Emit(OpCodes.Ldarg_0); //load (this) onto the stack
-                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedType("RepeatHealComponent", BindingFlags.Instance | BindingFlags.NonPublic).GetFieldCached("healthComponent"));
-                c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth")); 
-                c.Emit(OpCodes.Bge_Un_S, lab); //branch to return if health > fullhealth
+                c.Emit(OpCodes.Ldfld, typeof(HealthComponent).GetNestedTypeCached("RepeatHealComponent").GetFieldCached("healthComponent"));
+                c.Emit(OpCodes.Call, typeof(HealthComponent).GetMethod("get_fullHealth"));
+
+                c.EmitDelegate<Func<float,HealthComponent,float,float,bool>>((reserve,hc,health,fullhp) =>
+                {
+                    if(reserve > 0f && health < fullhp && !hc.body.HasBuff(BuffIndex.HealingDisabled)) return true;
+                    return false;
+                });
 
                 //Mark return address
+                c.Emit(OpCodes.Brfalse, lab);
                 c.GotoNext(
                     x => x.MatchRet()
                     );
@@ -278,7 +300,7 @@ namespace Paddywan
             On.RoR2.UI.HUD.Start += (self, orig) =>
             {
                 self(orig);
-                initializeReserveUI(0f);
+                initializeReserveUI();
                 reserveRect.transform.SetParent(orig.healthBar.transform, false);
                 hpBar = orig.healthBar;
             };
@@ -287,6 +309,8 @@ namespace Paddywan
         //Update reserveUI & distribute CorpseReserve's to network players
         public void Update()
         {
+            //TestHelper.spawnItem(KeyCode.F7, ItemIndex.RepeatHeal);
+            //TestHelper.spawnItem(KeyCode.F8, ItemIndex.HealWhileSafe);
             //Send CorpseReserves to all CorpseBloom owners
             #region updateNetClientReserves
             if (NetworkServer.active)
@@ -330,33 +354,42 @@ namespace Paddywan
 
             //Create reserveUI when player owns CorpseBloom, update sizes.
             #region updateReserveUI
-            if (hpBar != null)
+            try
             {
-                if (hpBar.source.body.inventory != null)
+                if (hpBar != null)
                 {
-                    if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
+                    if (/*hpBar.source && hpBar.source.body != null && */hpBar.source.body.inventory != null)
                     {
-                        percentReserve = -0.5f + (currentReserve / reserveMax);
-                        reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
-                        if (reserveRect.activeSelf == false)
+                        //Debug.Log("has invent");
+                        if (hpBar.source.body.inventory.GetItemCount(ItemIndex.RepeatHeal) != 0)
                         {
-                            reserveRect.SetActive(true);
+                            //Debug.Log("has corpse");
+                            percentReserve = -0.5f + (currentReserve / reserveMax);
+                            reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(percentReserve, 0.5f);
+                            if (reserveRect.activeSelf == false)
+                            {
+                                reserveBar.GetComponent<RectTransform>().anchorMax = new Vector2(1f, 0.5f);
+                                Debug.Log("was false, now true");
+                                reserveRect.SetActive(true);
+                            }
                         }
-                    }
-                    else
-                    {
-                        if (reserveRect.activeSelf == true)
+                        else
                         {
-                            reserveRect.SetActive(false);
+                            if (reserveRect.activeSelf == true)
+                            {
+                                //Debug.Log("was true, now false");
+                                reserveRect.SetActive(false);
+                            }
                         }
                     }
                 }
             }
+            catch (NullReferenceException ex) { }
             #endregion
         }
 
         //Create UI components
-        void initializeReserveUI(float offset)
+        void initializeReserveUI()
         {
             #region reserveBarContainer
             reserveRect = new GameObject();
